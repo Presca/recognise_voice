@@ -836,7 +836,7 @@ details.raw .pill-btn { margin-top: 0.75rem; }
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.play-overlay svg { position: relative; margin-left: 2px; }
+.play-overlay svg { position: relative; }
 .play-overlay:hover::before { transform: scale(1.1); background: var(--brand); }
 
 .chart-info { min-width: 0; }
@@ -892,3 +892,23 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 
 .pager-btn:disabled { background: #d9d4e6; cursor: default; }
 .pager-label { font-size: 0.85rem; color: var(--muted); min-width: 3.5rem; text-align: center; }
+
+/* replay */
+
+.replay-btn {
+  margin-top: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--glass-strong);
+  color: var(--on-brand);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.replay-btn:hover { background: rgba(255, 255, 255, 0.4); }
+.replay-btn svg { flex: none; }

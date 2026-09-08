@@ -253,6 +253,21 @@ class VoiceRecorder {
     this.samples = [];
     this.startedAt = performance.now();
 
+    // Keep the raw audio so the user can replay what was analysed.
+    this.blobPromise = null;
+    this.mediaRecorder = null;
+    if (window.MediaRecorder) {
+      const chunks = [];
+      const mr = new MediaRecorder(this.stream);
+      this.mediaRecorder = mr;
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      this.blobPromise = new Promise((resolve) => {
+        mr.onstop = () => resolve(chunks.length ? new Blob(chunks, { type: mr.mimeType || "audio/webm" }) : null);
+        mr.onerror = () => resolve(null);
+      });
+      mr.start();
+    }
+
     this.timer = setInterval(() => {
       this.analyser.getFloatTimeDomainData(timeData);
       this.analyser.getFloatFrequencyData(freqData);
@@ -268,6 +283,8 @@ class VoiceRecorder {
   stop() {
     clearInterval(this.timer);
     this.timer = null;
+    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop();
+    this.mediaRecorder = null;
     if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
     if (this.ctx) this.ctx.close();
     this.stream = null;

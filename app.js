@@ -141,6 +141,7 @@ function finishRecording() {
   uiTimer = null;
   const tooShort = recorder.elapsed() < MIN_RECORD_MS;
   const samples = recorder.stop();
+  const blobPromise = recorder.blobPromise;
   const profile = tooShort ? null : analyseSamples(samples);
 
   if (!profile) {
@@ -152,8 +153,40 @@ function finishRecording() {
     return;
   }
 
+  setupReplay(blobPromise);
   runAnalysis(profile);
 }
+
+/* ---------- Replay ---------- */
+
+const replay = { url: null, audio: $("replay-audio") };
+
+function setReplayLabel(playing) {
+  $("replay-btn").innerHTML = (playing ? PAUSE_ICON : PLAY_ICON) + (playing ? " Pause" : " Replay my singing");
+}
+
+function setupReplay(blobPromise) {
+  const btn = $("replay-btn");
+  btn.hidden = true;
+  replay.audio.pause();
+  replay.audio.removeAttribute("src");
+  if (replay.url) { URL.revokeObjectURL(replay.url); replay.url = null; }
+  if (!blobPromise) return;
+  blobPromise.then((blob) => {
+    if (!blob) return;
+    replay.url = URL.createObjectURL(blob);
+    replay.audio.src = replay.url;
+    setReplayLabel(false);
+    btn.hidden = false;
+  });
+}
+
+$("replay-btn").addEventListener("click", () => {
+  if (replay.audio.paused) replay.audio.play(); else replay.audio.pause();
+});
+replay.audio.addEventListener("play", () => setReplayLabel(true));
+replay.audio.addEventListener("pause", () => setReplayLabel(false));
+replay.audio.addEventListener("ended", () => setReplayLabel(false));
 
 $("stop-btn").addEventListener("click", finishRecording);
 $("cancel-btn").addEventListener("click", () => { cancelRecording(); showScreen("intro"); });
@@ -519,7 +552,9 @@ function songCard(song, { featured = false, dismissable = true } = {}) {
 
 const SPOTIFY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.3 14.5a.6.6 0 0 1-.85.2c-2.3-1.4-5.2-1.7-8.6-.95a.62.62 0 0 1-.28-1.2c3.7-.85 6.9-.5 9.5 1.1.3.18.4.58.23.85zm1.15-2.6a.78.78 0 0 1-1.07.26c-2.65-1.63-6.7-2.1-9.83-1.15a.78.78 0 1 1-.45-1.5c3.6-1.1 8.05-.56 11.1 1.32.37.23.48.7.25 1.07zm.1-2.7C14.4 9.3 9.15 9.13 6.1 10.05a.94.94 0 1 1-.55-1.8c3.5-1.06 9.3-.86 12.95 1.3a.94.94 0 0 1-.95 1.65z"/></svg>';
 const YOUTUBE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.3 5 12 5 12 5s-6.3 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.7 19 12 19 12 19s6.3 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>';
-const PLAY_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+const MIC_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4zm6-4a6 6 0 0 1-5 5.92V20h3v2H8v-2h3v-3.08A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/></svg>';
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
 
 function iconLink(cls, href, label, svg) {
   const a = el("a", "icon-btn " + cls);
@@ -546,7 +581,7 @@ function chartRow(song, rank) {
   play.rel = "noopener";
   play.title = "Sing the karaoke version on YouTube";
   play.setAttribute("aria-label", `Karaoke: ${song.title} by ${song.artist}`);
-  play.innerHTML = PLAY_ICON;
+  play.innerHTML = MIC_ICON;
   art.append(play);
   row.append(art);
 

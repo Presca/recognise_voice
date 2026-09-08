@@ -9,6 +9,7 @@ Recognise Voice listens to a short sung phrase, analyses it in the browser, and 
 - **Genres best suited to your voice.**
 - **Songs to try** — a numbered chart with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion moves up; unmatched songs are remembered between visits.
 - **A karaoke to start with** — the top pick is featured so you can get singing straight away.
+- **Replay** — listen back to the exact take that was analysed (kept in memory only, never uploaded).
 
 The UI is modelled on Shazam's one-big-button flow, in electric violet.
 
@@ -30,8 +31,8 @@ Chrome or Edge is recommended. Nothing is uploaded — all audio analysis runs i
 | --- | --- |
 | `index.html` | The three screens: intro, recording, results |
 | `style.css` | Shazam-style visual design |
-| `data.js` | Curated singer dataset (voice type, comfortable range, tone, genres, songs) and link builders for Spotify / YouTube / karaoke |
-| `engine.js` | Web Audio recording, autocorrelation pitch detection, voice profiling, singer matching, genre and song ranking |
+| `data.js` | Curated dataset of 60+ singers, classic and current (voice type, comfortable range, perceptual ratings, technique/delivery tags, genres, five songs each) and link builders for Spotify / YouTube / karaoke |
+| `engine.js` | Web Audio + MediaRecorder capture, frame measurements, segmentation, vocal fingerprint, four-dimension singer matching, genre and song ranking |
 | `app.js` | UI flow, rendering, unmatch/refresh logic |
 
 ### Analysis
