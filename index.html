@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recognise Voice</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <h1>Recognise Voice</h1>
+    <p class="subtitle">Press the button and speak — your words appear below.</p>
+
+    <div class="controls">
+      <button id="toggle-btn" class="mic-button" type="button">
+        <span class="mic-icon" aria-hidden="true">🎤</span>
+        <span id="toggle-label">Start listening</span>
+      </button>
+      <select id="language-select" aria-label="Recognition language">
+        <option value="en-US" selected>English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="fr-FR">Français</option>
+        <option value="es-ES">Español</option>
+        <option value="de-DE">Deutsch</option>
+      </select>
+    </div>
+
+    <p id="status" class="status" role="status">Idle</p>
+
+    <section class="transcript-panel">
+      <h2>Transcript</h2>
+      <div id="transcript" class="transcript" aria-live="polite"></div>
+      <div id="interim" class="interim"></div>
+      <button id="clear-btn" class="clear-button" type="button">Clear</button>
+    </section>
+
+    <p id="unsupported" class="unsupported" hidden>
+      Your browser does not support the Web Speech API.
+      Try Chrome or Edge on desktop, or Chrome on Android.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
