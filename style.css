@@ -955,3 +955,15 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 
 .replay-btn:hover { background: rgba(255, 255, 255, 0.4); }
 .replay-btn svg { flex: none; }
+
+/* Actions sit under the title so the title always keeps full width. */
+.chart-row {
+  grid-template-columns: 1.4rem 64px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  row-gap: 0.45rem;
+}
+
+.chart-row .rank,
+.chart-row .chart-art { grid-row: 1 / span 2; }
+.chart-row .chart-info { grid-column: 3; align-self: end; }
+.chart-row .chart-actions { grid-column: 3; align-self: start; }
