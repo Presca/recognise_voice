@@ -3,43 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#8800ff" />
   <title>Recognise Voice</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%238800ff'/%3E%3Cpath fill='%23fff' d='M32 38a8 8 0 0 0 8-8V18a8 8 0 1 0-16 0v12a8 8 0 0 0 8 8zm12-8a12 12 0 0 1-10 11.83V46h6v4H24v-4h6v-4.17A12 12 0 0 1 20 30h4a8 8 0 0 0 16 0h4z'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <h1>Recognise Voice</h1>
-    <p class="subtitle">Press the button and speak — your words appear below.</p>
 
-    <div class="controls">
-      <button id="toggle-btn" class="mic-button" type="button">
-        <span class="mic-icon" aria-hidden="true">🎤</span>
-        <span id="toggle-label">Start listening</span>
+  <!-- ============ INTRO ============ -->
+  <section id="screen-intro" class="screen stage">
+    <header class="topbar">
+      <span class="brand">Recognise Voice</span>
+    </header>
+
+    <div class="stage-center">
+      <p class="tap-label">Tap to sing</p>
+
+      <button id="start-btn" class="big-btn" type="button" aria-label="Start singing">
+        <span class="ring ring-1"></span>
+        <span class="ring ring-2"></span>
+        <span class="core">
+          <svg viewBox="0 0 24 24" width="72" height="72" aria-hidden="true">
+            <path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4zm6-4a6 6 0 0 1-5 5.92V20h3v2H8v-2h3v-3.08A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/>
+          </svg>
+        </span>
       </button>
-      <select id="language-select" aria-label="Recognition language">
-        <option value="en-US" selected>English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="fr-FR">Français</option>
-        <option value="es-ES">Español</option>
-        <option value="de-DE">Deutsch</option>
-      </select>
+
+      <h1>Discover your singing voice</h1>
+      <p class="lead">Sing one line. We'll find your range, tone and voice type, match you to similar singers and hand you songs to try.</p>
     </div>
 
-    <p id="status" class="status" role="status">Idle</p>
+    <div class="stage-bottom">
+      <p class="picker-label">What will you sing?</p>
+      <div class="chips" id="prompt-chips">
+        <button class="chip selected" data-line="Happy birthday to you, happy birthday to you…">🎂 Happy Birthday</button>
+        <button class="chip" data-line="Twinkle, twinkle, little star, how I wonder what you are…">⭐ Twinkle Twinkle</button>
+        <button class="chip" data-line="Sing “ahh” — start comfortable, slide up as high as feels easy, then down as low as you can.">🎵 Slide on “ahh”</button>
+        <button class="chip" data-line="Sing a line from any song you love.">🎶 My own song</button>
+      </div>
+      <p class="hint">Chrome or Edge works best. Nothing is uploaded — analysis runs in your browser.</p>
+      <p id="unsupported" class="notice" hidden>Your browser doesn't support microphone recording. Try Chrome or Edge.</p>
+      <p id="error" class="notice" hidden></p>
+    </div>
+  </section>
 
-    <section class="transcript-panel">
-      <h2>Transcript</h2>
-      <div id="transcript" class="transcript" aria-live="polite"></div>
-      <div id="interim" class="interim"></div>
-      <button id="clear-btn" class="clear-button" type="button">Clear</button>
-    </section>
+  <!-- ============ RECORD ============ -->
+  <section id="screen-record" class="screen stage" hidden>
+    <header class="topbar">
+      <span class="brand">Recognise Voice</span>
+      <button id="cancel-btn" class="text-btn" type="button">Cancel</button>
+    </header>
 
-    <p id="unsupported" class="unsupported" hidden>
-      Your browser does not support the Web Speech API.
-      Try Chrome or Edge on desktop, or Chrome on Android.
-    </p>
-  </main>
+    <div class="stage-center">
+      <p class="tap-label">Listening… tap to finish</p>
 
+      <button id="stop-btn" class="big-btn listening" type="button" aria-label="Stop and analyse">
+        <span class="ring ring-1"></span>
+        <span class="ring ring-2"></span>
+        <span class="ring ring-3"></span>
+        <span class="core">
+          <span class="live-note" id="live-note">—</span>
+        </span>
+      </button>
+
+      <p class="lyric" id="lyric"></p>
+      <p class="timer"><span id="elapsed">0.0</span>s · stops at 15s</p>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="screen-results" class="screen results" hidden>
+    <div class="results-stage">
+      <header class="topbar">
+        <span class="brand">Recognise Voice</span>
+        <button id="again-btn" class="text-btn" type="button">Sing again</button>
+      </header>
+      <div class="result-hero">
+        <p class="eyebrow">Your voice type</p>
+        <h1 id="voice-type">—</h1>
+        <p id="voice-desc" class="lead"></p>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <div class="sheet-inner">
+
+        <section class="block">
+          <div class="range-bar" id="user-range-bar">
+            <div class="range-fill" id="user-range-fill"></div>
+            <div class="range-marker" id="user-range-median"></div>
+          </div>
+          <div class="range-labels"><span>C2</span><span>C3</span><span>C4</span><span>C5</span><span>C6</span></div>
+          <dl class="stats" id="stats"></dl>
+        </section>
+
+        <section class="block">
+          <h2>Singers with a similar voice</h2>
+          <div class="singer-grid" id="singers"></div>
+        </section>
+
+        <section class="block">
+          <h2>Genres suited to your voice</h2>
+          <div class="chips dark static" id="genres"></div>
+        </section>
+
+        <section class="block">
+          <h2>Start here — try this karaoke</h2>
+          <div id="featured"></div>
+        </section>
+
+        <section class="block">
+          <h2>Songs to try</h2>
+          <p class="sub">Not feeling one? Tap ✕ to unmatch it — we'll swap in a better suggestion.</p>
+          <div class="song-list" id="songs"></div>
+          <div class="song-actions">
+            <button id="more-btn" class="pill-btn" type="button">Show more songs</button>
+            <button id="reset-btn" class="pill-btn subtle" type="button">Reset unmatched</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+  <script src="data.js"></script>
+  <script src="engine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
