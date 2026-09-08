@@ -388,7 +388,13 @@ function renderSingers(matches, profile) {
     card.append(el("h4", "cf-name singer-name", singer.name));
     card.append(el("p", "cf-type", singer.type));
     card.append(el("p", "cf-sub", `${singer.low}–${singer.high} · ${singer.genres.join(", ")}`));
-    card.append(el("p", "cf-sub", `Voice ${acoustic}% · Technique ${technique ?? "—"}% · Delivery ${delivery ?? "—"}%`));
+    const scores = el("div", "cf-scores");
+    [["Voice", acoustic], ["Technique", technique], ["Delivery", delivery]].forEach(([k, v]) => {
+      const cell = el("span");
+      cell.append(el("b", null, v === null ? "—" : `${v}%`), document.createTextNode(k));
+      scores.append(cell);
+    });
+    card.append(scores);
 
     const share = el("button", "cf-share", "⇪");
     share.type = "button";

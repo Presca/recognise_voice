@@ -381,7 +381,7 @@ button { font: inherit; }
 
 .carousel {
   position: relative;
-  height: calc(var(--card-w) + 215px);
+  height: calc(var(--card-w) + 285px);
   perspective: 1400px;
   touch-action: pan-y;
   cursor: grab;
@@ -475,7 +475,7 @@ button { font: inherit; }
 }
 
 .cf-name {
-  margin: 1rem 3rem 0 0;
+  margin: 1rem 0 0;
   font-size: min(1.45rem, calc(var(--card-w) * 0.078));
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -499,10 +499,12 @@ button { font: inherit; }
 
 .cf-share {
   position: absolute;
-  right: 0.9rem;
-  bottom: 1rem;
-  width: 44px;
-  height: 44px;
+  right: 1.4rem;
+  top: 1.4rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(6px);
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.16);
@@ -513,6 +515,26 @@ button { font: inherit; }
 }
 
 .cf-share:hover { background: rgba(255, 255, 255, 0.28); }
+
+.cf-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.72rem;
+  opacity: 0.75;
+  text-align: center;
+}
+
+.cf-scores b {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  opacity: 1;
+  margin-bottom: 0.1rem;
+}
 
 .dots {
   display: flex;
