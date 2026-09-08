@@ -224,7 +224,7 @@ function matchSingers(profile) {
     const tone = toneSimilarity(profile.tone, singer.tone);
 
     const score = 0.45 * center + 0.35 * overlap + 0.2 * tone;
-    return { singer, score, matchPct: Math.round(score * 100) };
+    return { singer, score, matchPct: Math.min(99, Math.round(score * 100)) };
   }).sort((a, b) => b.score - a.score);
 }
 

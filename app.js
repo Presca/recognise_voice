@@ -168,10 +168,12 @@ function runAnalysis(profile) {
   rebuildSongPool();
 
   renderVoice(profile);
-  renderSingers(state.matches.slice(0, 5), profile);
+  renderSingers(state.matches.slice(0, 7), profile);
   renderGenres(suggestGenres(state.matches, profile));
   renderSongs();
   showScreen("results");
+  // The carousel measures its container, which has no width while hidden.
+  layoutCarousel();
 }
 
 function renderVoice(p) {
@@ -200,42 +202,169 @@ function renderVoice(p) {
   });
 }
 
+/* ---------- Singer carousel ---------- */
+
+const carousel = { matches: [], profile: null, active: 0, items: [] };
+
+// Deterministic two-hue gradient per singer, standing in for cover art.
+function coverColours(id) {
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = h % 360;
+  return [`hsl(${hue} 75% 55%)`, `hsl(${(hue + 50) % 360} 80% 40%)`];
+}
+
+function rankLabel(i) {
+  if (i === 0) return "Closest Match";
+  const ordinal = ["Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh"][i - 1] || `#${i + 1}`;
+  return `${ordinal} Closest`;
+}
+
+async function shareSinger(singer, matchPct, button) {
+  const text = `My singing voice is a ${matchPct}% match to ${singer.name} (${singer.type}) on Recognise Voice!`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Recognise Voice", text, url: location.href });
+    } else {
+      await navigator.clipboard.writeText(text + " " + location.href);
+      button.textContent = "✓";
+      setTimeout(() => { button.textContent = "⇪"; }, 1500);
+    }
+  } catch {
+    /* user cancelled or clipboard blocked — nothing to do */
+  }
+}
+
 function renderSingers(matches, profile) {
-  const grid = $("singers");
-  grid.replaceChildren();
+  carousel.matches = matches;
+  carousel.profile = profile;
+  carousel.active = 0;
+  carousel.items = [];
 
-  matches.forEach(({ singer, matchPct }) => {
-    const card = el("article", "singer-card");
+  const track = $("singer-carousel");
+  track.replaceChildren();
 
-    const top = el("div", "singer-top");
-    top.append(el("div", "avatar", initials(singer.name)));
-    const nameWrap = el("div");
-    nameWrap.append(el("div", "singer-name", singer.name));
-    nameWrap.append(el("div", "singer-meta", `${singer.type} · ${singer.low}–${singer.high}`));
-    top.append(nameWrap);
-    top.append(el("span", "match-pill", `${matchPct}% match`));
-    card.append(top);
+  matches.forEach(({ singer, matchPct }, i) => {
+    const item = el("article", "cf-item");
 
-    card.append(el("p", "singer-blurb", singer.blurb));
+    const label = el("div", "cf-label");
+    label.append(el("h3", null, rankLabel(i)));
+    label.append(el("p", null, `${matchPct}% match to your voice`));
+    item.append(label);
 
-    const bar = el("div", "mini-range");
-    const sFill = el("div", "range-fill singer");
-    sFill.style.left = pct(noteToMidi(singer.low)) + "%";
-    sFill.style.width = (pct(noteToMidi(singer.high)) - pct(noteToMidi(singer.low))) + "%";
-    const uFill = el("div", "range-fill user");
-    uFill.style.left = pct(profile.lowMidi) + "%";
-    uFill.style.width = Math.max(1.5, pct(profile.highMidi) - pct(profile.lowMidi)) + "%";
-    bar.append(sFill, uFill);
-    card.append(bar);
-    card.append(el("div", "singer-meta", "Grey: their range · Purple: yours"));
+    const card = el("div", "cf-card");
+    const art = el("div", "cf-art");
+    const cover = el("div", "cover");
+    const [c1, c2] = coverColours(singer.id);
+    cover.style.setProperty("--c1", c1);
+    cover.style.setProperty("--c2", c2);
+    art.append(cover, el("span", "initials", initials(singer.name)));
+    card.append(art);
+    card.append(el("h4", "cf-name singer-name", singer.name));
+    card.append(el("p", "cf-type", singer.type));
+    card.append(el("p", "cf-sub", `${singer.low}–${singer.high} · ${singer.genres.join(", ")}`));
 
-    const tags = el("div", "tag-row");
-    singer.genres.forEach((g) => tags.append(el("span", "tag", g)));
-    card.append(tags);
+    const share = el("button", "cf-share", "⇪");
+    share.type = "button";
+    share.title = "Share this match";
+    share.setAttribute("aria-label", `Share your match with ${singer.name}`);
+    share.addEventListener("click", (e) => { e.stopPropagation(); shareSinger(singer, matchPct, share); });
+    card.append(share);
 
-    grid.append(card);
+    item.append(card);
+    item.addEventListener("click", () => {
+      if (carousel.swiped) return; // the swipe already moved the carousel
+      if (carousel.active !== i) setActiveSinger(i);
+    });
+    track.append(item);
+    carousel.items.push(item);
+  });
+
+  const dots = $("singer-dots");
+  dots.replaceChildren();
+  matches.forEach(({ singer }, i) => {
+    const dot = el("button", "dot");
+    dot.type = "button";
+    dot.setAttribute("aria-label", `Show ${singer.name}`);
+    dot.addEventListener("click", () => setActiveSinger(i));
+    dots.append(dot);
+  });
+
+  setActiveSinger(0);
+}
+
+function setActiveSinger(index) {
+  carousel.active = Math.max(0, Math.min(carousel.matches.length - 1, index));
+  layoutCarousel();
+  renderSingerDetail();
+  document.querySelectorAll("#singer-dots .dot").forEach((d, i) => d.classList.toggle("active", i === carousel.active));
+}
+
+function layoutCarousel() {
+  const band = $("singer-carousel").parentElement;
+  const cardW = Math.min(300, Math.round(band.clientWidth * 0.62));
+  band.style.setProperty("--card-w", cardW + "px");
+  const spacing = cardW * 0.9;
+
+  carousel.items.forEach((item, i) => {
+    const offset = i - carousel.active;
+    const abs = Math.abs(offset);
+    item.style.transform =
+      `translateX(${offset * spacing}px) translateZ(${-abs * 140}px) rotateY(${-offset * 32}deg) scale(${1 - abs * 0.06})`;
+    item.style.opacity = abs > 2 ? 0 : 1;
+    item.style.filter = abs ? "brightness(0.72)" : "none";
+    item.style.zIndex = 10 - abs;
+    item.style.pointerEvents = abs > 2 ? "none" : "auto";
+    item.classList.toggle("active", offset === 0);
   });
 }
+
+function renderSingerDetail() {
+  const { singer } = carousel.matches[carousel.active];
+  const profile = carousel.profile;
+  const wrap = $("singer-detail");
+  wrap.replaceChildren();
+
+  wrap.append(el("p", null, singer.blurb));
+
+  const bar = el("div", "mini-range");
+  const sFill = el("div", "range-fill singer");
+  sFill.style.left = pct(noteToMidi(singer.low)) + "%";
+  sFill.style.width = (pct(noteToMidi(singer.high)) - pct(noteToMidi(singer.low))) + "%";
+  const uFill = el("div", "range-fill user");
+  uFill.style.left = pct(profile.lowMidi) + "%";
+  uFill.style.width = Math.max(1.5, pct(profile.highMidi) - pct(profile.lowMidi)) + "%";
+  bar.append(sFill, uFill);
+  wrap.append(bar);
+  wrap.append(el("div", "range-key", `White: ${singer.name.split(" ")[0]}'s range · Gold: yours`));
+
+  const tags = el("div", "tag-row");
+  singer.genres.forEach((g) => tags.append(el("span", "tag", g)));
+  wrap.append(tags);
+}
+
+// Swipe / drag between cards.
+(() => {
+  const track = $("singer-carousel");
+  let startX = null;
+  track.addEventListener("pointerdown", (e) => { startX = e.clientX; carousel.swiped = false; });
+  track.addEventListener("pointerup", (e) => {
+    if (startX === null) return;
+    const dx = e.clientX - startX;
+    startX = null;
+    if (Math.abs(dx) > 40) {
+      carousel.swiped = true;
+      setActiveSinger(carousel.active + (dx < 0 ? 1 : -1));
+    }
+  });
+  track.addEventListener("pointercancel", () => { startX = null; });
+  document.addEventListener("keydown", (e) => {
+    if (screens.results.hidden || !carousel.matches.length) return;
+    if (e.key === "ArrowRight") setActiveSinger(carousel.active + 1);
+    if (e.key === "ArrowLeft") setActiveSinger(carousel.active - 1);
+  });
+  window.addEventListener("resize", () => { if (carousel.items.length) layoutCarousel(); });
+})();
 
 function renderGenres(genres) {
   const wrap = $("genres");
