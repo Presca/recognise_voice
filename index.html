@@ -97,6 +97,19 @@
           <dl class="stats" id="stats"></dl>
         </section>
 
+        <section class="block fingerprint">
+          <h2>Your vocal fingerprint</h2>
+          <p class="sub">Measured first, described second. Dots show confidence; grey rows are things one sung line can't tell us.</p>
+          <div class="dim-grid" id="dim-grid"></div>
+          <dl class="fp-list" id="fp-list"></dl>
+          <div class="distinguish" id="distinguish"></div>
+          <details class="raw">
+            <summary>All measurements (JSON)</summary>
+            <button id="copy-json" class="pill-btn subtle" type="button">Copy JSON</button>
+            <pre id="fp-json"></pre>
+          </details>
+        </section>
+
         <section class="block">
           <h2>Singers with a similar voice</h2>
           <p class="sub">Swipe or tap a card to explore your matches.</p>
@@ -105,6 +118,8 @@
             <div class="dots" id="singer-dots" role="tablist"></div>
             <div class="carousel-detail" id="singer-detail"></div>
           </div>
+          <h3 class="dm-title">Closest match by dimension</h3>
+          <div class="dim-matches" id="dim-matches"></div>
         </section>
 
         <section class="block">
@@ -118,11 +133,18 @@
         </section>
 
         <section class="block">
-          <h2>Songs to try</h2>
-          <p class="sub">Not feeling one? Tap ✕ to unmatch it — we'll swap in a better suggestion.</p>
-          <div class="song-list" id="songs"></div>
+          <div class="section-head">
+            <h2>Songs to try</h2>
+            <button id="see-all-btn" class="see-all" type="button">See all <span aria-hidden="true">›</span></button>
+          </div>
+          <p class="sub">Tap the artwork to sing the karaoke version. Not feeling one? Tap ✕ to unmatch it and a better suggestion moves up.</p>
+          <div class="chart" id="songs"></div>
           <div class="song-actions">
-            <button id="more-btn" class="pill-btn" type="button">Show more songs</button>
+            <div class="pager" id="songs-pager">
+              <button id="songs-prev" class="pager-btn" type="button" aria-label="Previous songs">‹</button>
+              <span id="songs-page" class="pager-label"></span>
+              <button id="songs-next" class="pager-btn" type="button" aria-label="Next songs">›</button>
+            </div>
             <button id="reset-btn" class="pill-btn subtle" type="button">Reset unmatched</button>
           </div>
         </section>

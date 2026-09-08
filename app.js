@@ -24,7 +24,8 @@ let state = {
   songPool: [],
   singerPenalty: new Map(),
   dismissed: loadDismissed(),
-  visibleSongs: SONGS_PER_PAGE,
+  songPage: 0,
+  showAll: false,
 };
 
 /* ---------- Helpers ---------- */
@@ -164,12 +165,26 @@ function runAnalysis(profile) {
   state.profile = profile;
   state.matches = matchSingers(profile);
   state.singerPenalty = new Map();
-  state.visibleSongs = SONGS_PER_PAGE;
+  state.songPage = 0;
+  state.showAll = false;
   rebuildSongPool();
 
+  // Style is derived from matched singers and kept out of the acoustic similarity.
+  const genres = suggestGenres(state.matches, profile);
+  profile.descriptor.style = genres.slice(0, 3);
+  profile.fingerprint.style.genres = genres;
+  const top = (dim) => rankBy(state.matches, dim).slice(0, 5).map((m) => ({ singer: m.singer.name, pct: m[dim], reasons: m.reasons }));
+  profile.fingerprint.similarity_vectors = {
+    acoustic_voice: top("acoustic"),
+    technique: top("technique"),
+    performance_style: top("delivery"),
+    overall: state.matches.slice(0, 5).map((m) => ({ singer: m.singer.name, pct: m.matchPct, reasons: m.reasons })),
+  };
+
   renderVoice(profile);
+  renderFingerprint(profile, state.matches);
   renderSingers(state.matches.slice(0, 7), profile);
-  renderGenres(suggestGenres(state.matches, profile));
+  renderGenres(genres);
   renderSongs();
   showScreen("results");
   // The carousel measures its container, which has no width while hidden.
@@ -178,7 +193,7 @@ function runAnalysis(profile) {
 
 function renderVoice(p) {
   $("voice-type").textContent = p.voiceType;
-  $("voice-desc").textContent = `Estimated from what you sang — ${p.voiceDesc}, with a ${p.tone} tone.`;
+  $("voice-desc").textContent = `Estimated from what you sang — ${p.voiceDesc}. In short: ${p.descriptor.voice}.`;
 
   const fill = $("user-range-fill");
   fill.style.left = pct(p.lowMidi) + "%";
@@ -201,6 +216,83 @@ function renderVoice(p) {
     dl.append(wrap);
   });
 }
+
+/* ---------- Vocal fingerprint ---------- */
+
+function confDot(c) {
+  const level = c === 0 ? "none" : c <= 0.4 ? "low" : c <= 0.6 ? "mid" : "high";
+  const dot = el("span", "conf conf-" + level);
+  dot.title = confidenceWord(c) + (c ? ` (${c.toFixed(2)})` : "");
+  return dot;
+}
+
+function renderFingerprint(p, matches) {
+  const d = p.descriptor;
+  const grid = $("dim-grid");
+  grid.replaceChildren();
+  [
+    ["Voice", d.voice, "what it physically sounds like"],
+    ["Technique", d.technique.join(", ") || "—", "how you use it"],
+    ["Delivery", d.delivery.join(", ") || "—", "how the performance feels"],
+    ["Style", d.style.join(" / ") || "—", "where it sits musically"],
+  ].forEach(([k, v, hint]) => {
+    const card = el("div", "dim-card");
+    card.append(el("div", "dim-key", k), el("div", "dim-val", v), el("div", "dim-hint", hint));
+    grid.append(card);
+  });
+
+  const list = $("fp-list");
+  list.replaceChildren();
+  p.summary.forEach((row) => {
+    const wrap = el("div", "fp-row" + (row.confidence === 0 ? " unmeasured" : ""));
+    const dt = el("dt");
+    dt.append(confDot(row.confidence), document.createTextNode(row.label));
+    wrap.append(dt, el("dd", null, row.text));
+    list.append(wrap);
+  });
+
+  const dist = $("distinguish");
+  dist.replaceChildren();
+  const traits = distinguishingTraits(p);
+  if (traits.length) {
+    dist.append(el("h3", null, "What stands out"));
+    const ul = el("ul");
+    traits.forEach((t) => ul.append(el("li", null, t.text)));
+    dist.append(ul);
+  }
+
+  const dm = $("dim-matches");
+  dm.replaceChildren();
+  const shared = (a, b) => a.filter((t) => b.includes(t));
+  [
+    ["Acoustic voice", "acoustic", (m) => `closest on ${m.reasons.slice(0, 2).join(" & ")}`],
+    ["Vocal technique", "technique", (m) => { const s = shared(p.techniqueTags, m.singer.technique); return s.length ? `you both: ${s.join(", ")}` : "similar vibrato and texture"; }],
+    ["Performance style", "delivery", (m) => `you both: ${shared(p.deliveryTags, m.singer.delivery).join(", ")}`],
+    ["Overall", "matchPct", () => "55% voice · 25% technique · 20% delivery"],
+  ].forEach(([label, dim, why]) => {
+    const best = dim === "matchPct" ? matches[0] : rankBy(matches, dim)[0];
+    const row = el("div", "dm-row");
+    row.append(el("span", "dm-label", label));
+    if (!best) {
+      row.append(el("span", "dm-val", "—"), el("span", "dm-why", "not enough evidence in this line"));
+    } else {
+      row.append(el("span", "dm-val", `${best.singer.name} · ${best[dim]}%`), el("span", "dm-why", why(best)));
+    }
+    dm.append(row);
+  });
+
+  $("fp-json").textContent = JSON.stringify(p.fingerprint, null, 2);
+}
+
+$("copy-json").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("fp-json").textContent);
+    $("copy-json").textContent = "Copied";
+    setTimeout(() => { $("copy-json").textContent = "Copy JSON"; }, 1500);
+  } catch {
+    /* clipboard blocked — the JSON is still visible to select */
+  }
+});
 
 /* ---------- Singer carousel ---------- */
 
@@ -244,12 +336,12 @@ function renderSingers(matches, profile) {
   const track = $("singer-carousel");
   track.replaceChildren();
 
-  matches.forEach(({ singer, matchPct }, i) => {
+  matches.forEach(({ singer, matchPct, acoustic, technique, delivery }, i) => {
     const item = el("article", "cf-item");
 
     const label = el("div", "cf-label");
     label.append(el("h3", null, rankLabel(i)));
-    label.append(el("p", null, `${matchPct}% match to your voice`));
+    label.append(el("p", null, `${matchPct}% overall match`));
     item.append(label);
 
     const card = el("div", "cf-card");
@@ -263,6 +355,7 @@ function renderSingers(matches, profile) {
     card.append(el("h4", "cf-name singer-name", singer.name));
     card.append(el("p", "cf-type", singer.type));
     card.append(el("p", "cf-sub", `${singer.low}–${singer.high} · ${singer.genres.join(", ")}`));
+    card.append(el("p", "cf-sub", `Voice ${acoustic}% · Technique ${technique ?? "—"}% · Delivery ${delivery ?? "—"}%`));
 
     const share = el("button", "cf-share", "⇪");
     share.type = "button";
@@ -320,11 +413,12 @@ function layoutCarousel() {
 }
 
 function renderSingerDetail() {
-  const { singer } = carousel.matches[carousel.active];
+  const { singer, reasons } = carousel.matches[carousel.active];
   const profile = carousel.profile;
   const wrap = $("singer-detail");
   wrap.replaceChildren();
 
+  wrap.append(el("p", "dm-reasons", "Closest on " + reasons.join(", ")));
   wrap.append(el("p", null, singer.blurb));
 
   const bar = el("div", "mini-range");
@@ -423,6 +517,57 @@ function songCard(song, { featured = false, dismissable = true } = {}) {
   return card;
 }
 
+const SPOTIFY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.3 14.5a.6.6 0 0 1-.85.2c-2.3-1.4-5.2-1.7-8.6-.95a.62.62 0 0 1-.28-1.2c3.7-.85 6.9-.5 9.5 1.1.3.18.4.58.23.85zm1.15-2.6a.78.78 0 0 1-1.07.26c-2.65-1.63-6.7-2.1-9.83-1.15a.78.78 0 1 1-.45-1.5c3.6-1.1 8.05-.56 11.1 1.32.37.23.48.7.25 1.07zm.1-2.7C14.4 9.3 9.15 9.13 6.1 10.05a.94.94 0 1 1-.55-1.8c3.5-1.06 9.3-.86 12.95 1.3a.94.94 0 0 1-.95 1.65z"/></svg>';
+const YOUTUBE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.3 5 12 5 12 5s-6.3 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.7 19 12 19 12 19s6.3 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>';
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+
+function iconLink(cls, href, label, svg) {
+  const a = el("a", "icon-btn " + cls);
+  a.href = href;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.title = label;
+  a.setAttribute("aria-label", label);
+  a.innerHTML = svg;
+  return a;
+}
+
+function chartRow(song, rank) {
+  const row = el("article", "chart-row");
+  row.append(el("span", "rank", String(rank)));
+
+  const art = el("div", "chart-art");
+  const [c1, c2] = coverColours(song.singerId);
+  art.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+  art.append(el("span", "chart-initials", initials(song.artist)));
+  const play = el("a", "play-overlay");
+  play.href = karaokeUrl(song.title, song.artist);
+  play.target = "_blank";
+  play.rel = "noopener";
+  play.title = "Sing the karaoke version on YouTube";
+  play.setAttribute("aria-label", `Karaoke: ${song.title} by ${song.artist}`);
+  play.innerHTML = PLAY_ICON;
+  art.append(play);
+  row.append(art);
+
+  const info = el("div", "chart-info");
+  info.append(el("div", "song-title", song.title));
+  info.append(el("div", "song-meta", `${song.artist} · ${song.voiceType}`));
+  row.append(info);
+
+  const actions = el("div", "chart-actions");
+  actions.append(iconLink("spotify", spotifyUrl(song.title, song.artist), "Open on Spotify", SPOTIFY_ICON));
+  actions.append(iconLink("youtube", youtubeUrl(song.title, song.artist), "Watch on YouTube", YOUTUBE_ICON));
+  const x = el("button", "icon-btn unmatch", "✕");
+  x.type = "button";
+  x.title = "Not for me — suggest something else";
+  x.setAttribute("aria-label", `Unmatch ${song.title}`);
+  x.addEventListener("click", () => unmatchSong(song));
+  actions.append(x);
+  row.append(actions);
+  return row;
+}
+
 function renderSongs() {
   const songs = activeSongs();
   const list = $("songs");
@@ -432,13 +577,23 @@ function renderSongs() {
 
   if (!songs.length) {
     featuredWrap.append(el("p", "empty", "You've unmatched every suggestion — reset to see them again."));
+    $("songs-pager").hidden = true;
     return;
   }
 
   featuredWrap.append(songCard(songs[0], { featured: true, dismissable: false }));
 
-  songs.slice(0, state.visibleSongs).forEach((song) => list.append(songCard(song)));
-  $("more-btn").hidden = songs.length <= state.visibleSongs;
+  const pages = Math.max(1, Math.ceil(songs.length / SONGS_PER_PAGE));
+  state.songPage = Math.min(state.songPage, pages - 1);
+  const offset = state.showAll ? 0 : state.songPage * SONGS_PER_PAGE;
+  const shown = state.showAll ? songs : songs.slice(offset, offset + SONGS_PER_PAGE);
+  shown.forEach((song, i) => list.append(chartRow(song, offset + i + 1)));
+
+  $("songs-pager").hidden = state.showAll || pages <= 1;
+  $("songs-prev").disabled = state.songPage === 0;
+  $("songs-next").disabled = state.songPage >= pages - 1;
+  $("songs-page").textContent = `${state.songPage + 1} / ${pages}`;
+  $("see-all-btn").innerHTML = state.showAll ? "Show less <span aria-hidden=\"true\">›</span>" : "See all <span aria-hidden=\"true\">›</span>";
 }
 
 function unmatchSong(song) {
@@ -450,16 +605,19 @@ function unmatchSong(song) {
   renderSongs();
 }
 
-$("more-btn").addEventListener("click", () => {
-  state.visibleSongs += SONGS_PER_PAGE;
+$("see-all-btn").addEventListener("click", () => {
+  state.showAll = !state.showAll;
   renderSongs();
 });
+
+$("songs-prev").addEventListener("click", () => { state.songPage--; renderSongs(); });
+$("songs-next").addEventListener("click", () => { state.songPage++; renderSongs(); });
 
 $("reset-btn").addEventListener("click", () => {
   state.dismissed.clear();
   saveDismissed();
   state.singerPenalty = new Map();
-  state.visibleSongs = SONGS_PER_PAGE;
+  state.songPage = 0;
   rebuildSongPool();
   renderSongs();
 });

@@ -4,10 +4,10 @@ Sing one line and find out what your singing voice can do.
 
 Recognise Voice listens to a short sung phrase, analyses it in the browser, and tells you:
 
-- **Your voice** — range sung, comfort zone, estimated voice type (bass → soprano), tone (dark / warm / bright), pitch steadiness and dynamics.
-- **Singers with a similar voice** — matched from a curated dataset, each with their voice type, range, genres, a short profile and a match score.
+- **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
+- **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
 - **Genres best suited to your voice.**
-- **Songs to try** — with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion takes its place; unmatched songs are remembered between visits.
+- **Songs to try** — a numbered chart with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion moves up; unmatched songs are remembered between visits.
 - **A karaoke to start with** — the top pick is featured so you can get singing straight away.
 
 The UI is modelled on Shazam's one-big-button flow, in electric violet.
@@ -36,19 +36,43 @@ Chrome or Edge is recommended. Nothing is uploaded — all audio analysis runs i
 
 ### Analysis
 
-While you sing, the app samples the microphone every 50 ms, detects the fundamental pitch by
-autocorrelation and measures loudness and spectral centroid. Afterwards it takes the 5th–95th
-percentile of detected pitches as your sung range, the median as your comfort zone, and classifies
-voice type from that comfort zone. Tone comes from the average spectral centroid (brightness),
-steadiness from frame-to-frame pitch movement, and dynamics from loudness variation.
+The engine follows a measure-first, describe-second pipeline:
+
+1. **Frame measurements** every 25 ms: fundamental frequency by autocorrelation (with a periodicity
+   score used as a harmonic-to-noise proxy), RMS level, spectral centroid, roll-off, band energy
+   shares, spectral tilt and H1–H2.
+2. **Segmentation** into phrases (silences ≥ 250 ms) and notes (pitch steps ≥ 0.7 semitone that
+   persist for two frames).
+3. **Distributions**, not just averages: median, percentiles and spread for pitch, level and spectrum.
+   Range is reported three ways — demonstrated (min–max), typical usable (5th–95th percentile) and
+   comfortable tessitura (25th–75th).
+4. **Derived scores (0–100)** for brightness, warmth, vocal weight, breathiness, roughness, plus
+   vibrato rate / extent / regularity, attack and release, scoops, slides, runs, phrasing and dynamics.
+   Every value carries a confidence (0–1) driven by recording quality (SNR, clipping, seconds of
+   usable singing) and the reliability of the feature itself.
+5. **Four separate dimensions** — *Voice* (what it physically sounds like), *Technique* (how you use
+   it), *Delivery* (how the performance feels) and *Style* (where it sits musically) — shown as a
+   one-line descriptor such as `dark/breathy/light · soft onset, straight tone · behind-beat, understated · alt-pop`.
+
+Things a single a cappella line on a phone microphone cannot support — formants, perceived resonance
+placement, register use (chest / mix / head / falsetto), rhythmic placement, articulation and vocal
+power — are reported as `null` with a reason rather than guessed. The full machine-readable
+fingerprint (JSON) is available on the results page.
 
 ### Matching
 
-Each singer is scored on how close your comfort zone is to the centre of their range (45%), how
-much of your sung range overlaps theirs (35%) and how similar the tone is (20%). Genres are weighted
-by the top matches; songs are drawn from matched singers, interleaved so the list stays varied.
-Unmatching a song hides it and slightly lowers that singer so different voices surface next.
+Singers are compared along the same four dimensions, and each is reported separately:
 
-Singer ranges are approximate, commonly cited *comfortable* ranges rather than record-breaking
-extremes — that suits matching against a single sung line. Voice type is an estimate from a short
-sample, not a formal classification.
+- **Acoustic voice** — pitch range and tessitura, brightness, weight, breathiness, warmth, vibrato.
+- **Technique** — shared technique tags (vibrato, belt, breathy, rasp, runs, scoops, slides, onsets…)
+  plus vibrato and roughness similarity.
+- **Performance style** — shared delivery tags (legato, sustained, dynamic, understated, intimate…).
+- **Overall** — 55% voice, 25% technique, 20% delivery; this drives the carousel order.
+
+Genres are weighted from the top overall matches and never feed the acoustic similarity. Songs are
+drawn from matched singers and interleaved so the list stays varied; unmatching a song hides it and
+slightly lowers that singer so different voices surface next.
+
+The singer ratings in `data.js` are curated perceptual estimates (0–100) and tags, not measurements —
+they are only ever compared with the user's *derived* perceptual scores. Ranges are approximate,
+commonly cited *comfortable* ranges rather than record-breaking extremes.
