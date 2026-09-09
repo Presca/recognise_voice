@@ -1213,3 +1213,85 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 }
 
 .section-head.plain { border-bottom: none; padding-bottom: 0; align-items: center; }
+
+/* share panel */
+
+.share-sheet { position: fixed; inset: 0; z-index: 50; display: grid; place-items: end center; }
+.share-backdrop { position: absolute; inset: 0; background: rgba(20, 8, 40, 0.55); backdrop-filter: blur(3px); }
+
+.share-card {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--sheet);
+  color: var(--text);
+  border-radius: 24px 24px 0 0;
+  padding: 1.1rem 1.25rem 1.5rem;
+  box-shadow: 0 -20px 60px -20px rgba(0, 0, 0, 0.6);
+  animation: sheet-up 0.25s ease;
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .share-sheet { place-items: center; }
+  .share-card { border-radius: 24px; }
+}
+
+.share-head { display: flex; justify-content: space-between; align-items: center; }
+.share-head h3 { margin: 0; font-size: 1.1rem; }
+
+.share-close {
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: var(--sheet-alt); color: var(--muted); cursor: pointer;
+}
+
+.share-text {
+  margin: 0.6rem 0 0.9rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: var(--sheet-alt);
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+@media (max-width: 420px) { .share-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.share-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.3rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.share-app:hover { background: var(--sheet-alt); }
+.share-app .share-icon {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; font-size: 1.2rem;
+  background: var(--app-colour, var(--brand));
+}
+
+.share-link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; margin-top: 0.9rem; }
+@media (max-width: 480px) { .share-link-row { grid-template-columns: 1fr; } }
+
+.share-link {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--sheet-alt);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+}

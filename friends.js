@@ -140,19 +140,64 @@ function notify(text) {
   n.hidden = false;
 }
 
-async function shareLink(url, title, text, button) {
-  try {
-    if (navigator.share) {
-      await navigator.share({ title, text, url });
-      return true;
-    }
-    await navigator.clipboard.writeText(url);
-    if (button) { const old = button.textContent; button.textContent = "Link copied ✓"; setTimeout(() => { button.textContent = old; }, 2000); }
-    return true;
-  } catch {
-    return false;
+const SHARE_APPS = [
+  { id: "whatsapp", label: "WhatsApp", colour: "#25d366", icon: "💬", href: (u, t) => `https://wa.me/?text=${encodeURIComponent(t + " " + u)}` },
+  { id: "telegram", label: "Telegram", colour: "#229ed9", icon: "✈️", href: (u, t) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}` },
+  { id: "messenger", label: "Messenger", colour: "#a334fa", icon: "💭", href: (u) => `https://www.facebook.com/dialog/send?link=${encodeURIComponent(u)}&app_id=291494419107518&redirect_uri=${encodeURIComponent(u)}` },
+  { id: "x", label: "X", colour: "#111", icon: "𝕏", href: (u, t) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(u)}` },
+  { id: "sms", label: "Messages", colour: "#34c759", icon: "📱", href: (u, t) => `sms:?&body=${encodeURIComponent(t + " " + u)}` },
+  { id: "email", label: "Email", colour: "#4f6df5", icon: "✉️", href: (u, t, title) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(t + "\n\n" + u)}` },
+];
+
+const share = { url: "", text: "", title: "" };
+
+function openShareSheet(url, title, text) {
+  share.url = url;
+  share.title = title;
+  share.text = text;
+  $("share-title").textContent = title;
+  $("share-text").textContent = text;
+  $("share-link").value = url;
+  const grid = $("share-grid");
+  grid.replaceChildren();
+  SHARE_APPS.forEach((app) => {
+    const a = el("a", "share-app");
+    a.style.setProperty("--app-colour", app.colour);
+    a.href = app.href(url, text, title);
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.append(el("span", "share-icon", app.icon), document.createTextNode(app.label));
+    grid.append(a);
+  });
+  if (navigator.share) {
+    const more = el("button", "share-app");
+    more.type = "button";
+    more.style.setProperty("--app-colour", "#6d6486");
+    more.append(el("span", "share-icon", "⋯"), document.createTextNode("More…"));
+    more.addEventListener("click", () => navigator.share({ title, text, url }).catch(() => {}));
+    grid.append(more);
   }
+  $("share-copy").textContent = "Copy message + link";
+  $("share-sheet").hidden = false;
 }
+
+function closeShareSheet() {
+  $("share-sheet").hidden = true;
+}
+
+$("share-sheet").addEventListener("click", (e) => { if (e.target.dataset.close !== undefined) closeShareSheet(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeShareSheet(); });
+$("share-copy").addEventListener("click", async () => {
+  const btn = $("share-copy");
+  try {
+    await navigator.clipboard.writeText(share.text + " " + share.url);
+    btn.textContent = "Copied ✓";
+  } catch {
+    $("share-link").select();
+    btn.textContent = "Select the link above and copy";
+  }
+});
+$("share-link").addEventListener("focus", (e) => e.target.select());
 
 function inviteLink() {
   const from = singers[0] ? singers[0].name : "A friend";
@@ -196,13 +241,14 @@ $("send-voice-btn").addEventListener("click", async (e) => {
   if (!invite.profile) return;
   const name = invite.name || "Your friend";
   const url = pageUrl() + "#voice=" + encodeData({ id: Date.now().toString(36), ...compactProfile(invite.profile, name) });
-  const ok = await shareLink(url, "ReVoice", `${name}'s voice for our duet — open this on ReVoice:`, e.currentTarget);
-  notify(ok ? `Send that link to ${invite.from}. When they open it, your voice joins their roster.` : "Couldn't share automatically — copy the address bar link after tapping again.");
+  openShareSheet(url, "Send my voice back", `Here's my voice for our duet on ReVoice, ${invite.from} — open this link and I'll appear in your singers:`);
+  notify(`When ${invite.from} opens that link, your voice joins their roster.`);
 });
 
-$("invite-btn").addEventListener("click", async (e) => {
-  const ok = await shareLink(inviteLink(), "ReVoice — sing with me", `${singers[0] ? singers[0].name : "I"} want to find a duet for us. Sing one line here:`, e.currentTarget);
-  notify(ok ? "Invite link ready. When your friend sends their voice link back, open it on this device and they'll appear here." : "Couldn't share automatically — please copy the link from your browser.");
+$("invite-btn").addEventListener("click", () => {
+  const from = singers[0] ? singers[0].name : "I";
+  openShareSheet(inviteLink(), "Invite a singer", `${from === "I" ? "I want" : from + " wants"} to find a duet for us on ReVoice 🎤 Sing one line here and send me your voice back:`);
+  notify("When your friend sends their voice link back, open it on this device and they'll appear here.");
 });
 
 function handleIncomingLink() {
