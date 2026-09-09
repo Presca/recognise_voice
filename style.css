@@ -967,3 +967,37 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 .chart-row .chart-art { grid-row: 1 / span 2; }
 .chart-row .chart-info { grid-column: 3; align-self: end; }
 .chart-row .chart-actions { grid-column: 3; align-self: start; }
+
+/* ---------- faint musical texture behind the violet stages ---------- */
+
+.stage,
+.results-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.stage::before,
+.results-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22720%22 height=%22540%22 viewBox=%220 0 720 540%22%3E%3Cg stroke=%22%23fff%22 stroke-opacity=%220.55%22 stroke-width=%221%22%3E%3Cline x1=%220%22 y1=%2296%22 x2=%22720%22 y2=%2296%22/%3E%3Cline x1=%220%22 y1=%22107%22 x2=%22720%22 y2=%22107%22/%3E%3Cline x1=%220%22 y1=%22118%22 x2=%22720%22 y2=%22118%22/%3E%3Cline x1=%220%22 y1=%22129%22 x2=%22720%22 y2=%22129%22/%3E%3Cline x1=%220%22 y1=%22140%22 x2=%22720%22 y2=%22140%22/%3E%3Cline x1=%220%22 y1=%22372%22 x2=%22720%22 y2=%22372%22/%3E%3Cline x1=%220%22 y1=%22383%22 x2=%22720%22 y2=%22383%22/%3E%3Cline x1=%220%22 y1=%22394%22 x2=%22720%22 y2=%22394%22/%3E%3Cline x1=%220%22 y1=%22405%22 x2=%22720%22 y2=%22405%22/%3E%3Cline x1=%220%22 y1=%22416%22 x2=%22720%22 y2=%22416%22/%3E%3C/g%3E%3Cpath d=%22M0 262 C 60 232, 120 292, 180 262 S 300 232, 360 262 S 480 292, 540 262 S 660 232, 720 262%22 fill=%22none%22 stroke=%22%23fff%22 stroke-opacity=%220.5%22 stroke-width=%221.6%22/%3E%3Cg fill=%22%23fff%22 fill-opacity=%220.75%22 stroke-opacity=%220.75%22%3E%3Cg transform=%22translate%28120 118%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -34 c 10 6 12 12 8 22 c 2 -8 -2 -12 -8 -14 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28300 140%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 34 c 10 -6 12 -12 8 -22 c 2 8 -2 12 -8 14 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28470 108%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cellipse cx=%2230%22 cy=%22-6%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22 30 -6%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-36 M36.6 -7.5 V-42%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -36 L36.6 -42 v5 L6.6 -31 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28640 96%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -34 c 10 6 12 12 8 22 c 2 -8 -2 -12 -8 -14 z%22/%3E%3C/g%3E%3Cg transform=%22translate%2870 405%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -34 c 10 6 12 12 8 22 c 2 -8 -2 -12 -8 -14 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28230 392%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cellipse cx=%2230%22 cy=%22-6%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22 30 -6%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-36 M36.6 -7.5 V-42%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -36 L36.6 -42 v5 L6.6 -31 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28430 416%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 34 c 10 -6 12 -12 8 -22 c 2 8 -2 12 -8 14 z%22/%3E%3C/g%3E%3Cg transform=%22translate%28600 384%29%22%3E%3Cellipse cx=%220%22 cy=%220%22 rx=%227.5%22 ry=%225.2%22 transform=%22rotate%28-22%29%22/%3E%3Cpath d=%22M6.6 -1.5 V-34%22 stroke=%22%23fff%22 stroke-width=%221.8%22 fill=%22none%22/%3E%3Cpath d=%22M6.6 -34 c 10 6 12 12 8 22 c 2 -8 -2 -12 -8 -14 z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-size: 720px 540px;
+  background-position: center top;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.55));
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.55));
+}
+
+.stage > *,
+.results-stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .stage::before,
+  .results-stage::before { background-size: 540px 405px; }
+}
