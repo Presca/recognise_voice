@@ -58,6 +58,10 @@
     </div>
 
     <div class="stage-bottom">
+      <div class="lang-row">
+        <label for="lang-select">🌐 Sing in</label>
+        <select id="lang-select" class="lang-select" aria-label="Language to sing in"></select>
+      </div>
       <p class="picker-label">What will you sing?</p>
       <div class="chips" id="prompt-chips">
         <button class="chip selected" data-line="Happy birthday to you, happy birthday to you…">🎂 Happy Birthday</button>
@@ -137,7 +141,7 @@
           <div class="section-head">
             <h2>Duets for the two of you</h2>
           </div>
-          <p class="sub">Tap the artwork for the karaoke version. Each row says who takes which part.</p>
+          <p class="sub" id="duets-sub">Tap the artwork for the karaoke version. Each row says who takes which part.</p>
           <div class="chart" id="duets"></div>
         </section>
 
@@ -145,7 +149,7 @@
           <div class="section-head">
             <h2 id="group-heading">Sing-alongs for everyone</h2>
           </div>
-          <p class="sub">Songs whose melody sits comfortably in all your voices — everyone sings in their own octave.</p>
+          <p class="sub" id="group-sub">Songs whose melody sits comfortably in all your voices — everyone sings in their own octave.</p>
           <div class="chart" id="group-songs"></div>
         </section>
 

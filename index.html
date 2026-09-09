@@ -38,6 +38,10 @@
     </div>
 
     <div class="stage-bottom">
+      <div class="lang-row">
+        <label for="lang-select">🌐 Sing in</label>
+        <select id="lang-select" class="lang-select" aria-label="Language to sing in"></select>
+      </div>
       <p class="picker-label">What will you sing?</p>
       <div class="chips" id="prompt-chips">
         <button class="chip selected" data-line="Happy birthday to you, happy birthday to you…">🎂 Happy Birthday</button>
@@ -126,8 +130,11 @@
         </section>
 
         <section class="block">
-          <h2>Singers with a similar voice</h2>
-          <p class="sub">Swipe or tap a card to explore your matches.</p>
+          <div class="section-head plain">
+            <h2>Singers with a similar voice</h2>
+            <select id="lang-select-results" class="lang-select dark" aria-label="Language of singers to match"></select>
+          </div>
+          <p class="sub" id="singers-sub">Swipe or tap a card to explore your matches.</p>
           <div class="carousel-band">
             <div class="carousel" id="singer-carousel"></div>
             <div class="dots" id="singer-dots" role="tablist"></div>

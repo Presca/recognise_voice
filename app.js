@@ -14,6 +14,7 @@ const RANGE_BAR_LOW = noteToMidi("C2");
 const RANGE_BAR_HIGH = noteToMidi("C6");
 const SONGS_PER_PAGE = 6;
 const DISMISSED_KEY = "recognise-voice:unmatched";
+const LANG_KEY = "revoice:lang";
 
 const recorder = new VoiceRecorder();
 let uiTimer = null;
@@ -26,7 +27,39 @@ let state = {
   dismissed: loadDismissed(),
   songPage: 0,
   showAll: false,
+  lang: loadLang(),
 };
+
+function loadLang() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    return saved && (saved === "any" || LANGUAGES.some((l) => l.code === saved)) ? saved : "en";
+  } catch {
+    return "en";
+  }
+}
+
+function fillLanguageSelect(select) {
+  select.replaceChildren();
+  LANGUAGES.forEach((l) => { const o = document.createElement("option"); o.value = l.code; o.textContent = l.label; select.append(o); });
+  const any = document.createElement("option");
+  any.value = "any";
+  any.textContent = "Any language";
+  select.append(any);
+  select.value = state.lang;
+}
+
+function setLanguage(code) {
+  state.lang = code;
+  try { localStorage.setItem(LANG_KEY, code); } catch { /* fine */ }
+  document.querySelectorAll(".lang-select").forEach((sel) => { sel.value = code; });
+  if (state.profile && !screens.results.hidden) runAnalysis(state.profile);
+}
+
+document.querySelectorAll(".lang-select").forEach((sel) => {
+  fillLanguageSelect(sel);
+  sel.addEventListener("change", (e) => setLanguage(e.target.value));
+});
 
 /* ---------- Helpers ---------- */
 
@@ -196,7 +229,13 @@ $("again-btn").addEventListener("click", () => showScreen("intro"));
 
 function runAnalysis(profile) {
   state.profile = profile;
-  state.matches = matchSingers(profile);
+  const { list: pool, fellBack } = byLanguage(SINGERS, state.lang, 5);
+  state.matches = matchSingers(profile, pool);
+  $("singers-sub").textContent = state.lang === "any"
+    ? "Matches across every language. Swipe or tap a card to explore."
+    : fellBack
+      ? `Not enough ${languageLabel(state.lang)} singers yet, so these matches span all languages.`
+      : `Matches among ${languageLabel(state.lang)} singers. Swipe or tap a card to explore.`;
   state.singerPenalty = new Map();
   state.songPage = 0;
   state.showAll = false;

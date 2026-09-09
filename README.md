@@ -7,6 +7,7 @@ ReVoice listens to a short sung phrase, analyses it in the browser, and tells yo
 - **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
 - **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
 - **Genres best suited to your voice.**
+- **Sing in your language** — pick English, Español, 한국어, 日本語, हिन्दी, Français, Português, 中文, Tagalog or العربية and the matched singers, songs, duets and sing-alongs come from that language (or choose any language).
 - **Songs to try** — a numbered chart with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion moves up; unmatched songs are remembered between visits.
 - **A karaoke to start with** — the top pick is featured so you can get singing straight away.
 - **Replay** — listen back to the exact take that was analysed (kept in memory only, never uploaded).
@@ -32,7 +33,7 @@ Chrome or Edge is recommended. Nothing is uploaded — all audio analysis runs i
 | --- | --- |
 | `index.html` | The three screens: intro, recording, results |
 | `style.css` | Shazam-style visual design |
-| `data.js` | Curated dataset of 60+ singers, classic and current (voice type, comfortable range, perceptual ratings, technique/delivery tags, genres, five songs each) and link builders for Spotify / YouTube / karaoke |
+| `data.js` | Curated dataset of 110+ singers across ten languages, classic and current (voice type, comfortable range, perceptual ratings, technique/delivery tags, genres, five songs each) and link builders for Spotify / YouTube / karaoke |
 | `engine.js` | Web Audio + MediaRecorder capture, frame measurements, segmentation, vocal fingerprint, four-dimension singer matching, genre and song ranking |
 | `app.js` | UI flow, rendering, unmatch/refresh logic |
 | `friends.html` / `friends.js` | Sing-with-friends page: multi-singer roster, group fit description, duet and sing-along ranking (`DUETS`, `GROUP_SONGS` in `data.js`) |

@@ -25,6 +25,9 @@ let uiTimer = null;
 let selectedLine = "";
 const singers = []; // { id, name, colour, profile, blobPromise, url, remote }
 const ROSTER_KEY = "revoice:friends-roster";
+const LANG_KEY = "revoice:lang";
+let lang = "en";
+try { const saved = localStorage.getItem(LANG_KEY); if (saved && (saved === "any" || LANGUAGES.some((l) => l.code === saved))) lang = saved; } catch { /* default */ }
 const invite = { active: false, from: "", profile: null, name: "" };
 
 /* ---------- Helpers ---------- */
@@ -153,12 +156,13 @@ async function shareLink(url, title, text, button) {
 
 function inviteLink() {
   const from = singers[0] ? singers[0].name : "A friend";
-  return pageUrl() + "#invite=" + encodeData({ from, line: selectedLine });
+  return pageUrl() + "#invite=" + encodeData({ from, line: selectedLine, lang });
 }
 
 function enterInviteMode(data) {
   invite.active = true;
   invite.from = (data && data.from) || "A friend";
+  if (data && data.lang) { lang = data.lang; $("lang-select").value = lang; }
   if (data && data.line) {
     selectedLine = data.line;
     document.querySelectorAll("#prompt-chips .chip").forEach((c) => c.classList.toggle("selected", c.dataset.line === data.line));
@@ -217,6 +221,22 @@ function handleIncomingLink() {
     notify(added ? `${c.n}'s voice has been added — ${c.t}, ${c.v}. Record yourself if you haven't, then finish to analyse.` : `${c.n} is already in your roster.`);
   }
 }
+
+/* ---------- Language ---------- */
+
+(() => {
+  const sel = $("lang-select");
+  LANGUAGES.forEach((l) => { const o = document.createElement("option"); o.value = l.code; o.textContent = l.label; sel.append(o); });
+  const any = document.createElement("option");
+  any.value = "any";
+  any.textContent = "Any language";
+  sel.append(any);
+  sel.value = lang;
+  sel.addEventListener("change", (e) => {
+    lang = e.target.value;
+    try { localStorage.setItem(LANG_KEY, lang); } catch { /* fine */ }
+  });
+})();
 
 /* ---------- Intro / roster ---------- */
 
@@ -422,7 +442,9 @@ function groupScore(fits) {
 }
 
 function rankDuets(a, b) {
-  return DUETS.map((duet) => {
+  const { list, fellBack } = byLanguage(DUETS, lang, 3);
+  $("duets-sub").textContent = (fellBack ? `Not many ${languageLabel(lang)} duets yet, so these span all languages. ` : lang === "any" ? "" : `${languageLabel(lang)} duets. `) + "Tap the artwork for the karaoke version. Each row says who takes which part.";
+  return list.map((duet) => {
     const [p0, p1] = duet.parts;
     const straight = [partFit(a.profile, p0.low, p0.high), partFit(b.profile, p1.low, p1.high)];
     const swapped = [partFit(a.profile, p1.low, p1.high), partFit(b.profile, p0.low, p0.high)];
@@ -442,7 +464,9 @@ function rankDuets(a, b) {
 }
 
 function rankGroupSongs(list) {
-  return GROUP_SONGS.map((song) => {
+  const { list: songs, fellBack } = byLanguage(GROUP_SONGS, lang, 5);
+  $("group-sub").textContent = (fellBack ? `Not many ${languageLabel(lang)} sing-alongs yet, so these span all languages. ` : lang === "any" ? "" : `${languageLabel(lang)} songs. `) + "Melodies that sit comfortably in all your voices — everyone sings in their own octave.";
+  return songs.map((song) => {
     const fits = list.map((s) => partFit(s.profile, song.low, song.high, { shiftPenalty: 0.97 }));
     return { song, score: groupScore(fits.map((f) => f.fit)), fits };
   }).sort((x, y) => y.score - x.score);

@@ -910,9 +910,9 @@ function dice(a, b) {
   return (2 * inter) / (a.length + b.length);
 }
 
-function matchSingers(profile) {
+function matchSingers(profile, pool = SINGERS) {
   const s = profile.scores;
-  return SINGERS.map((singer) => {
+  return pool.map((singer) => {
     const sLow = noteToMidi(singer.low);
     const sHigh = noteToMidi(singer.high);
     const sCenter = (sLow + sHigh) / 2;
