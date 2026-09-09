@@ -33,11 +33,28 @@
         </span>
       </button>
 
-      <h1>Sing with friends</h1>
-      <p class="lead">Take turns singing one line each. We'll describe your voices and find duets and sing-alongs that suit all of you.</p>
+      <h1 id="intro-title">Sing with friends</h1>
+      <p class="lead" id="intro-lead">Take turns singing one line each. We'll describe your voices and find duets and sing-alongs that suit all of you.</p>
 
       <div class="roster" id="roster"></div>
       <button id="finish-btn" class="finish-btn" type="button" hidden>Finish &amp; analyse</button>
+      <button id="invite-btn" class="ghost-btn" type="button">🔗 Invite a singer who isn't here</button>
+      <p id="notice" class="toast" hidden></p>
+
+      <div id="invite-panel" class="invite-panel" hidden>
+        <div id="invite-result" hidden>
+          <div class="invite-voice">
+            <span class="voice-avatar" id="invite-avatar">?</span>
+            <div>
+              <input id="invite-name" class="roster-name" type="text" maxlength="24" placeholder="Your name" aria-label="Your name" />
+              <div class="roster-meta" id="invite-meta"></div>
+            </div>
+          </div>
+          <p id="invite-desc" class="invite-desc"></p>
+          <button id="send-voice-btn" class="finish-btn" type="button">Send my voice back</button>
+          <p class="hint">The link carries only your analysed voice profile — not the recording.</p>
+        </div>
+      </div>
     </div>
 
     <div class="stage-bottom">

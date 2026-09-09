@@ -10,7 +10,7 @@ ReVoice listens to a short sung phrase, analyses it in the browser, and tells yo
 - **Songs to try** — a numbered chart with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion moves up; unmatched songs are remembered between visits.
 - **A karaoke to start with** — the top pick is featured so you can get singing straight away.
 - **Replay** — listen back to the exact take that was analysed (kept in memory only, never uploaded).
-- **Sing with friends** (`friends.html`) — record one singer after another, then get a plain description of each voice, how they fit together (spacing, shared notes, tone blend), duets with who-sings-which-part, and sing-alongs everyone can manage in their own octave.
+- **Sing with friends** (`friends.html`) — record one singer after another, then get a plain description of each voice, how they fit together (spacing, shared notes, tone blend), duets with who-sings-which-part, and sing-alongs everyone can manage in their own octave. A singer who isn't in the room can be invited by link: they record on their own device and send back a link carrying only their analysed voice profile, which drops them into your roster.
 
 The UI is modelled on Shazam's one-big-button flow, in electric violet.
 

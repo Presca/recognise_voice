@@ -652,7 +652,8 @@ function analyseSamples(samples) {
   const phrasingLabel = legatoRatio === null ? null : legatoRatio >= 0.8 ? "legato" : legatoRatio >= 0.6 ? "flowing" : legatoRatio >= 0.4 ? "conversational" : "clipped";
 
   /* --- 7. Perceptual derivations (0–100) --- */
-  const brightness = Math.round(100 * (0.6 * scale(centroidMed, 900, 3600) + 0.4 * scale(hfMed, 0.05, 0.45)));
+  const centroidRatio = centroidMed / midiToFreq(median); // centroid in multiples of the sung pitch
+  const brightness = Math.round(100 * (0.55 * scale(centroidRatio, 2.5, 9) + 0.45 * scale(hfMed, 0.03, 0.4)));
   const weight = Math.round(100 * (
     0.45 * scale(lowMed, 0.15, 0.75) +
     0.25 * (tiltMed === null ? 0.5 : scale(tiltMed, -5, 25)) +
@@ -759,7 +760,7 @@ function analyseSamples(samples) {
         }, base * 0.6 * scale(sustained.length, 0, 4), "detrended cents contour extrema on notes ≥ 0.4 s", { caveat: "40 Hz frame rate quantises rates above ~7 Hz" }),
     },
     perceptual_profile: {
-      brightness: measured({ score: brightness, label: brightLabel5 }, specConf * 0.85, "spectral centroid + share above 2 kHz"),
+      brightness: measured({ score: brightness, label: brightLabel5, centroid_to_pitch_ratio: round(centroidRatio, 2) }, specConf * 0.85, "spectral centroid relative to sung pitch + share above 2 kHz"),
       warmth: measured({ score: warmth, label: labelFor(warmth, WARMTH_LABELS) }, base * 0.35, "500–2 kHz share, mid brightness, low roughness"),
       breathiness: measured({ score: breathiness, label: labelFor(breathiness, BREATHINESS_LABELS) }, base * 0.5, "see acoustic_profile.voice_quality.breathiness"),
       roughness: roughness === null ? unmeasured("Not enough sustained phonation.") : measured({ score: roughness, label: labelFor(roughness, ROUGHNESS_LABELS) }, base * 0.4, "see voice_quality.roughness"),
@@ -958,33 +959,38 @@ function rankBy(matches, dim) {
   return matches.filter((m) => m[dim] !== null).sort((a, b) => b[dim] - a[dim]);
 }
 
-// Where the user sits against the singer population on each perceptual axis.
+// What stands out. Only pitch can honestly be compared with the singer set
+// (a note is a note); the curated tone/texture ratings live on a different
+// scale from microphone measurements, so those are described on their own
+// absolute 0–100 scale and only when clearly extreme.
 function distinguishingTraits(profile) {
-  const axes = [
-    ["brightness", (x) => x.voice.brightness, "Brighter", "Darker"],
-    ["warmth", (x) => x.voice.warmth, "Warmer", "Cooler"],
-    ["weight", (x) => x.voice.weight, "Heavier", "Lighter"],
-    ["breathiness", (x) => x.voice.breathiness, "Breathier", "Clearer"],
-    ["roughness", (x) => x.voice.roughness, "Raspier", "Smoother"],
-    ["vibrato", (x) => x.voice.vibrato, "More vibrato", "Straighter-toned"],
-  ];
-  const traits = axes.map(([key, get, hiWord, loWord]) => {
-    const u = profile.scores[key];
-    if (u === null || u === undefined) return null;
-    const pop = SINGERS.map(get);
-    const below = pop.filter((v) => v < u).length / pop.length;
-    return { key, below, text: below >= 0.5 ? `${hiWord} than ${Math.round(below * 100)}% of the singers in our set` : `${loWord} than ${Math.round((1 - below) * 100)}% of the singers in our set` };
-  }).filter(Boolean);
-
+  const traits = [];
   const centers = SINGERS.map((x) => (noteToMidi(x.low) + noteToMidi(x.high)) / 2);
-  const belowC = centers.filter((c) => c < profile.medianMidi).length / centers.length;
-  traits.push({ key: "tessitura", below: belowC, text: belowC >= 0.5 ? `Comfort zone (${profile.medianNote}) sits higher than ${Math.round(belowC * 100)}% of our singers` : `Comfort zone (${profile.medianNote}) sits lower than ${Math.round((1 - belowC) * 100)}% of our singers` });
+  const below = centers.filter((c) => c < profile.medianMidi).length / centers.length;
+  if (Math.abs(below - 0.5) >= 0.2) {
+    traits.push({ strength: Math.abs(below - 0.5) + 1, text: below >= 0.5
+      ? `Your comfort zone (${profile.medianNote}) sits higher than ${Math.round(below * 100)}% of the singers in our set`
+      : `Your comfort zone (${profile.medianNote}) sits lower than ${Math.round((1 - below) * 100)}% of the singers in our set` });
+  }
+  const span = profile.highMidi - profile.lowMidi;
+  if (span >= 14) traits.push({ strength: 0.9, text: `You covered ${Math.round(span)} semitones in one line — a wide, flexible range` });
 
-  return traits
-    .map((t) => ({ ...t, strength: Math.abs(t.below - 0.5) }))
-    .filter((t) => t.strength >= 0.25)
-    .sort((a, b) => b.strength - a.strength)
-    .slice(0, 6);
+  const s = profile.scores;
+  const axes = [
+    ["brightness", "Very dark timbre", "Very bright timbre", "brightness"],
+    ["warmth", "A cool, lean tone", "An unusually warm tone", "warmth"],
+    ["weight", "A very light voice", "A very heavy, full voice", "weight"],
+    ["breathiness", "A very clear, focused sound", "A very breathy, airy sound", "breathiness"],
+    ["roughness", "A very smooth, even texture", "A very raspy texture", "roughness"],
+    ["vibrato", "Almost no vibrato — straight-tone singing", "Strong, prominent vibrato", "vibrato"],
+  ];
+  axes.forEach(([key, lowText, highText, label]) => {
+    const v = s[key];
+    if (v === null || v === undefined) return;
+    if (v <= 20) traits.push({ strength: (20 - v) / 20, text: `${lowText} (${label} ${v}/100)` });
+    else if (v >= 80) traits.push({ strength: (v - 80) / 20, text: `${highText} (${label} ${v}/100)` });
+  });
+  return traits.sort((a, b) => b.strength - a.strength).slice(0, 5);
 }
 
 function suggestGenres(matches, profile, top = 5) {

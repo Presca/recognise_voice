@@ -547,7 +547,9 @@ function songCard(song, { featured = false, dismissable = true } = {}) {
   }
 
   const links = el("div", "links");
-  links.append(linkButton("karaoke" + (featured ? " big" : ""), "🎤 Karaoke on YouTube", karaokeUrl(song.title, song.artist)));
+  const karaoke = linkButton("karaoke" + (featured ? " big" : ""), "", karaokeUrl(song.title, song.artist));
+  karaoke.innerHTML = MIC_ICON + " Karaoke on YouTube";
+  links.append(karaoke);
   links.append(linkButton("spotify", "Open on Spotify", spotifyUrl(song.title, song.artist)));
   links.append(linkButton("youtube", "Watch on YouTube", youtubeUrl(song.title, song.artist)));
   card.append(links);

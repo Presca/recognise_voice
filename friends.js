@@ -23,7 +23,9 @@ const MAX_SINGERS = SINGER_COLOURS.length;
 const recorder = new VoiceRecorder();
 let uiTimer = null;
 let selectedLine = "";
-const singers = []; // { name, colour, profile, blobPromise, url }
+const singers = []; // { id, name, colour, profile, blobPromise, url, remote }
+const ROSTER_KEY = "revoice:friends-roster";
+const invite = { active: false, from: "", profile: null, name: "" };
 
 /* ---------- Helpers ---------- */
 
@@ -66,6 +68,156 @@ const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden=
 const SPOTIFY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.3 14.5a.6.6 0 0 1-.85.2c-2.3-1.4-5.2-1.7-8.6-.95a.62.62 0 0 1-.28-1.2c3.7-.85 6.9-.5 9.5 1.1.3.18.4.58.23.85zm1.15-2.6a.78.78 0 0 1-1.07.26c-2.65-1.63-6.7-2.1-9.83-1.15a.78.78 0 1 1-.45-1.5c3.6-1.1 8.05-.56 11.1 1.32.37.23.48.7.25 1.07zm.1-2.7C14.4 9.3 9.15 9.13 6.1 10.05a.94.94 0 1 1-.55-1.8c3.5-1.06 9.3-.86 12.95 1.3a.94.94 0 0 1-.95 1.65z"/></svg>';
 const YOUTUBE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.3 5 12 5 12 5s-6.3 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.7 19 12 19 12 19s6.3 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>';
 
+/* ---------- Sharing voices by link ---------- */
+
+// Only what the group analysis needs, so a voice fits in a URL fragment.
+function compactProfile(p, name) {
+  return {
+    n: name, l: +p.lowMidi.toFixed(2), h: +p.highMidi.toFixed(2), m: +p.medianMidi.toFixed(2),
+    t: p.voiceType, d: p.voiceDesc, v: p.descriptor.voice, s: p.steadiness,
+    k: p.techniqueTags.slice(0, 3), b: p.scores.brightness, r: p.scores.breathiness,
+  };
+}
+
+function expandProfile(c) {
+  return {
+    lowMidi: c.l, highMidi: c.h, medianMidi: c.m,
+    lowNote: midiToNote(c.l), highNote: midiToNote(c.h), medianNote: midiToNote(c.m),
+    voiceType: c.t, voiceDesc: c.d, descriptor: { voice: c.v }, steadiness: c.s,
+    techniqueTags: c.k || [], scores: { brightness: c.b, breathiness: c.r },
+  };
+}
+
+function encodeData(obj) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeData(str) {
+  try {
+    const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch {
+    return null;
+  }
+}
+
+function pageUrl() {
+  return location.origin + location.pathname;
+}
+
+function saveRoster() {
+  try {
+    localStorage.setItem(ROSTER_KEY, JSON.stringify(singers.map((s) => ({ id: s.id, remote: !!s.remote, ...compactProfile(s.profile, s.name) }))));
+  } catch {
+    /* storage unavailable — the roster just won't survive a reload */
+  }
+}
+
+function loadRoster() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ROSTER_KEY) || "[]");
+    saved.slice(0, MAX_SINGERS).forEach((c) => addSinger(expandProfile(c), c.n, { id: c.id, remote: c.remote, silent: true }));
+  } catch {
+    /* ignore corrupt storage */
+  }
+}
+
+function addSinger(profile, name, { id, remote = false, blobPromise = null, silent = false } = {}) {
+  if (singers.length >= MAX_SINGERS) return null;
+  if (id && singers.some((s) => s.id === id)) return null;
+  const singer = { id: id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name || nextSingerLabel(), colour: SINGER_COLOURS[singers.length], profile, blobPromise, url: null, remote };
+  singers.push(singer);
+  if (!silent) saveRoster();
+  return singer;
+}
+
+function notify(text) {
+  const n = $("notice");
+  n.textContent = text;
+  n.hidden = false;
+}
+
+async function shareLink(url, title, text, button) {
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return true;
+    }
+    await navigator.clipboard.writeText(url);
+    if (button) { const old = button.textContent; button.textContent = "Link copied ✓"; setTimeout(() => { button.textContent = old; }, 2000); }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function inviteLink() {
+  const from = singers[0] ? singers[0].name : "A friend";
+  return pageUrl() + "#invite=" + encodeData({ from, line: selectedLine });
+}
+
+function enterInviteMode(data) {
+  invite.active = true;
+  invite.from = (data && data.from) || "A friend";
+  if (data && data.line) {
+    selectedLine = data.line;
+    document.querySelectorAll("#prompt-chips .chip").forEach((c) => c.classList.toggle("selected", c.dataset.line === data.line));
+  }
+  $("intro-title").textContent = `${invite.from} invited you to sing together`;
+  $("intro-lead").textContent = "Sing the line below on your own. We'll describe your voice and give you a link to send back, so you can be matched for duets even when you're apart.";
+  $("tap-label").textContent = "Tap to sing";
+  $("roster").hidden = true;
+  $("finish-btn").hidden = true;
+  $("invite-btn").hidden = true;
+  $("invite-panel").hidden = false;
+}
+
+function showInviteResult(profile) {
+  invite.profile = profile;
+  const result = $("invite-result");
+  result.hidden = false;
+  $("invite-name").value = invite.name;
+  $("invite-avatar").textContent = invite.name ? initials(invite.name) : "?";
+  $("invite-meta").textContent = `${profile.voiceType} · sang ${profile.lowNote}–${profile.highNote} · ${profile.descriptor.voice}`;
+  $("invite-desc").textContent = describeVoice({ profile, name: "You" }).replace(/^You /, "");
+  $("tap-label").textContent = "Not happy with that take? Tap to sing again";
+}
+
+$("invite-name").addEventListener("input", (e) => {
+  invite.name = e.target.value.trim();
+  $("invite-avatar").textContent = invite.name ? initials(invite.name) : "?";
+});
+
+$("send-voice-btn").addEventListener("click", async (e) => {
+  if (!invite.profile) return;
+  const name = invite.name || "Your friend";
+  const url = pageUrl() + "#voice=" + encodeData({ id: Date.now().toString(36), ...compactProfile(invite.profile, name) });
+  const ok = await shareLink(url, "ReVoice", `${name}'s voice for our duet — open this on ReVoice:`, e.currentTarget);
+  notify(ok ? `Send that link to ${invite.from}. When they open it, your voice joins their roster.` : "Couldn't share automatically — copy the address bar link after tapping again.");
+});
+
+$("invite-btn").addEventListener("click", async (e) => {
+  const ok = await shareLink(inviteLink(), "ReVoice — sing with me", `${singers[0] ? singers[0].name : "I"} want to find a duet for us. Sing one line here:`, e.currentTarget);
+  notify(ok ? "Invite link ready. When your friend sends their voice link back, open it on this device and they'll appear here." : "Couldn't share automatically — please copy the link from your browser.");
+});
+
+function handleIncomingLink() {
+  const hash = location.hash.replace(/^#/, "");
+  if (!hash) return;
+  const [key, value] = hash.split("=");
+  if (key === "invite") {
+    enterInviteMode(decodeData(decodeURIComponent(value)));
+    return;
+  }
+  if (key === "voice") {
+    const c = decodeData(decodeURIComponent(value));
+    history.replaceState(null, "", location.pathname);
+    if (!c || typeof c.l !== "number") { notify("That voice link didn't work — ask your friend to send it again."); return; }
+    const added = addSinger(expandProfile(c), c.n, { id: c.id, remote: true });
+    notify(added ? `${c.n}'s voice has been added — ${c.t}, ${c.v}. Record yourself if you haven't, then finish to analyse.` : `${c.n} is already in your roster.`);
+  }
+}
+
 /* ---------- Intro / roster ---------- */
 
 $("prompt-chips").addEventListener("click", (e) => {
@@ -100,26 +252,30 @@ function renderRoster() {
     name.value = s.name;
     name.maxLength = 24;
     name.setAttribute("aria-label", `Name for singer ${i + 1}`);
-    name.addEventListener("input", () => { s.name = name.value.trim() || `Singer ${i + 1}`; });
+    name.addEventListener("input", () => { s.name = name.value.trim() || `Singer ${i + 1}`; saveRoster(); });
     info.append(name);
-    info.append(el("div", "roster-meta", `${s.profile.voiceType} · sang ${s.profile.lowNote}–${s.profile.highNote} · ${s.profile.descriptor.voice}`));
+    info.append(el("div", "roster-meta", `${s.remote ? "📨 shared by link · " : ""}${s.profile.voiceType} · sang ${s.profile.lowNote}–${s.profile.highNote} · ${s.profile.descriptor.voice}`));
     card.append(info);
 
     const actions = el("div", "roster-actions");
-    const play = el("button", "roster-btn");
-    play.type = "button";
-    play.title = "Replay";
-    play.innerHTML = PLAY_ICON;
-    play.addEventListener("click", () => replaySinger(s, play));
+    if (s.blobPromise) {
+      const play = el("button", "roster-btn");
+      play.type = "button";
+      play.title = "Replay";
+      play.innerHTML = PLAY_ICON;
+      play.addEventListener("click", () => replaySinger(s, play));
+      actions.append(play);
+    }
     const remove = el("button", "roster-btn", "✕");
     remove.type = "button";
     remove.title = "Remove this singer";
-    remove.addEventListener("click", () => { singers.splice(i, 1); renderRoster(); });
-    actions.append(play, remove);
+    remove.addEventListener("click", () => { singers.splice(i, 1); saveRoster(); renderRoster(); });
+    actions.append(remove);
     card.append(actions);
     roster.append(card);
   });
 
+  if (invite.active) return;
   const full = singers.length >= MAX_SINGERS;
   $("tap-label").textContent = full ? "That's the maximum — finish to analyse" : `${nextSingerLabel()} — tap to sing`;
   $("start-btn").disabled = full;
@@ -205,7 +361,11 @@ function finishRecording() {
     return;
   }
 
-  singers.push({ name: nextSingerLabel(), colour: SINGER_COLOURS[singers.length], profile, blobPromise, url: null });
+  if (invite.active) {
+    showInviteResult(profile);
+    return;
+  }
+  addSinger(profile, nextSingerLabel(), { blobPromise });
   renderRoster();
 }
 
@@ -223,6 +383,7 @@ $("again-btn").addEventListener("click", () => {
   stopReplay();
   singers.forEach((s) => { if (s.url) URL.revokeObjectURL(s.url); });
   singers.length = 0;
+  saveRoster();
   renderRoster();
   showScreen("intro");
 });
@@ -371,12 +532,16 @@ function runGroupAnalysis() {
     head.append(el("span", "voice-type", s.profile.voiceType));
     body.append(head, el("p", null, describeVoice(s)));
     card.append(body);
-    const play = el("button", "voice-replay");
-    play.type = "button";
-    play.title = `Replay ${s.name}`;
-    play.innerHTML = PLAY_ICON;
-    play.addEventListener("click", () => replaySinger(s, play));
-    card.append(play);
+    if (s.blobPromise) {
+      const play = el("button", "voice-replay");
+      play.type = "button";
+      play.title = `Replay ${s.name}`;
+      play.innerHTML = PLAY_ICON;
+      play.addEventListener("click", () => replaySinger(s, play));
+      card.append(play);
+    } else {
+      card.append(el("span"));
+    }
     voices.append(card);
   });
 
@@ -475,3 +640,9 @@ function groupRow(r, list, rank) {
 }
 
 renderRoster();
+
+loadRoster();
+handleIncomingLink();
+renderRoster();
+// A voice link opened while this page is already showing only changes the hash.
+window.addEventListener("hashchange", () => { handleIncomingLink(); renderRoster(); });

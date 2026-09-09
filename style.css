@@ -1222,3 +1222,53 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 }
 
 .chart-info .song-meta.wrap { white-space: normal; -webkit-line-clamp: 2; }
+
+/* invite flow */
+
+.ghost-btn {
+  margin-top: 1rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--on-brand);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ghost-btn:hover { background: var(--glass); }
+
+.toast {
+  margin: 0.9rem auto 0;
+  max-width: 46ch;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  background: var(--glass-strong);
+  color: var(--on-brand);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.invite-panel {
+  width: min(520px, 100%);
+  margin: 1.5rem auto 0;
+  text-align: left;
+}
+
+.invite-voice {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: var(--glass);
+}
+
+.invite-voice .voice-avatar { color: var(--brand); background: var(--on-brand); text-shadow: none; }
+.invite-desc { margin: 0.9rem 0 0.25rem; color: var(--on-brand-muted); font-size: 0.95rem; line-height: 1.5; }
+.invite-panel .finish-btn { margin-top: 0.9rem; }
+.invite-panel .hint { margin-top: 0.5rem; text-align: center; }
+
+.link-btn svg { vertical-align: -3px; margin-right: 0.2rem; }
