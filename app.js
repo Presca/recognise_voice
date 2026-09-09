@@ -434,9 +434,12 @@ function setActiveSinger(index) {
 
 function layoutCarousel() {
   const band = $("singer-carousel").parentElement;
-  const cardW = Math.min(300, Math.round(band.clientWidth * 0.62));
+  const cardW = Math.min(280, Math.round(band.clientWidth * 0.56));
   band.style.setProperty("--card-w", cardW + "px");
   const spacing = cardW * 0.9;
+  // Items are absolutely positioned, so size the track to the tallest card.
+  const tallest = Math.max(0, ...carousel.items.map((item) => item.offsetHeight));
+  if (tallest) $("singer-carousel").style.height = tallest + 6 + "px";
 
   carousel.items.forEach((item, i) => {
     const offset = i - carousel.active;
@@ -470,10 +473,6 @@ function renderSingerDetail() {
   bar.append(sFill, uFill);
   wrap.append(bar);
   wrap.append(el("div", "range-key", `White: ${singer.name.split(" ")[0]}'s range · Gold: yours`));
-
-  const tags = el("div", "tag-row");
-  singer.genres.forEach((g) => tags.append(el("span", "tag", g)));
-  wrap.append(tags);
 }
 
 // Swipe / drag between cards.
