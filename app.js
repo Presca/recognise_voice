@@ -346,10 +346,10 @@ function rankLabel(i) {
 }
 
 async function shareSinger(singer, matchPct, button) {
-  const text = `My singing voice is a ${matchPct}% match to ${singer.name} (${singer.type}) on Recognise Voice!`;
+  const text = `My singing voice is a ${matchPct}% match to ${singer.name} (${singer.type}) on ReVoice!`;
   try {
     if (navigator.share) {
-      await navigator.share({ title: "Recognise Voice", text, url: location.href });
+      await navigator.share({ title: "ReVoice", text, url: location.href });
     } else {
       await navigator.clipboard.writeText(text + " " + location.href);
       button.textContent = "✓";

@@ -1,8 +1,8 @@
-# Recognise Voice
+# ReVoice
 
 Sing one line and find out what your singing voice can do.
 
-Recognise Voice listens to a short sung phrase, analyses it in the browser, and tells you:
+ReVoice listens to a short sung phrase, analyses it in the browser, and tells you:
 
 - **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
 - **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
