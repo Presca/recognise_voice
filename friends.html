@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#8800ff" />
+  <title>Sing with friends — Recognise Voice</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%238800ff'/%3E%3Cpath fill='%23fff' d='M32 38a8 8 0 0 0 8-8V18a8 8 0 1 0-16 0v12a8 8 0 0 0 8 8zm12-8a12 12 0 0 1-10 11.83V46h6v4H24v-4h6v-4.17A12 12 0 0 1 20 30h4a8 8 0 0 0 16 0h4z'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ INTRO / ROSTER ============ -->
+  <section id="screen-intro" class="screen stage">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Recognise Voice — home">
+        <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4zm6-4a6 6 0 0 1-5 5.92V20h3v2H8v-2h3v-3.08A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/></svg></span>
+        <span class="wordmark">recognise voice</span>
+      </a>
+      <a class="text-btn nav-link" href="./">🎤 Solo</a>
+    </header>
+
+    <div class="stage-center">
+      <p class="tap-label" id="tap-label">Singer 1 — tap to sing</p>
+
+      <button id="start-btn" class="big-btn" type="button" aria-label="Start singing">
+        <span class="ring ring-1"></span>
+        <span class="ring ring-2"></span>
+        <span class="core">
+          <svg viewBox="0 0 24 24" width="72" height="72" aria-hidden="true">
+            <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+          </svg>
+        </span>
+      </button>
+
+      <h1>Sing with friends</h1>
+      <p class="lead">Take turns singing one line each. We'll describe your voices and find duets and sing-alongs that suit all of you.</p>
+
+      <div class="roster" id="roster"></div>
+      <button id="finish-btn" class="finish-btn" type="button" hidden>Finish &amp; analyse</button>
+    </div>
+
+    <div class="stage-bottom">
+      <p class="picker-label">What will you sing?</p>
+      <div class="chips" id="prompt-chips">
+        <button class="chip selected" data-line="Happy birthday to you, happy birthday to you…">🎂 Happy Birthday</button>
+        <button class="chip" data-line="Twinkle, twinkle, little star, how I wonder what you are…">⭐ Twinkle Twinkle</button>
+        <button class="chip" data-line="Sing “ahh” — start comfortable, slide up as high as feels easy, then down as low as you can.">🎵 Slide on “ahh”</button>
+        <button class="chip" data-line="Sing a line from any song you love.">🎶 My own song</button>
+      </div>
+      <p class="hint">Everyone sings the same line, one after another. Nothing is uploaded — analysis runs in your browser.</p>
+      <p id="unsupported" class="notice" hidden>Your browser doesn't support microphone recording. Try Chrome or Edge.</p>
+      <p id="error" class="notice" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ RECORD ============ -->
+  <section id="screen-record" class="screen stage" hidden>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Recognise Voice — home">
+        <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4zm6-4a6 6 0 0 1-5 5.92V20h3v2H8v-2h3v-3.08A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/></svg></span>
+        <span class="wordmark">recognise voice</span>
+      </a>
+      <button id="cancel-btn" class="text-btn" type="button">Cancel</button>
+    </header>
+
+    <div class="stage-center">
+      <p class="tap-label" id="record-label">Singer 1 — listening… tap to finish</p>
+
+      <button id="stop-btn" class="big-btn listening" type="button" aria-label="Stop and save this singer">
+        <span class="ring ring-1"></span>
+        <span class="ring ring-2"></span>
+        <span class="ring ring-3"></span>
+        <span class="core">
+          <span class="live-note" id="live-note">—</span>
+        </span>
+      </button>
+
+      <p class="lyric" id="lyric"></p>
+      <p class="timer"><span id="elapsed">0.0</span>s · stops at 15s</p>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="screen-results" class="screen results" hidden>
+    <div class="results-stage">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Recognise Voice — home">
+          <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4zm6-4a6 6 0 0 1-5 5.92V20h3v2H8v-2h3v-3.08A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/></svg></span>
+          <span class="wordmark">recognise voice</span>
+        </a>
+        <span class="topbar-actions">
+          <button id="add-btn" class="text-btn" type="button">Add a singer</button>
+          <button id="again-btn" class="text-btn" type="button">Start over</button>
+        </span>
+      </header>
+      <div class="result-hero">
+        <p class="eyebrow">Your voices together</p>
+        <h1 id="group-title">—</h1>
+        <p id="group-desc" class="lead"></p>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <div class="sheet-inner">
+
+        <section class="block">
+          <h2>Your voices</h2>
+          <div class="multi-range" id="multi-range"></div>
+          <div class="range-labels"><span>C2</span><span>C3</span><span>C4</span><span>C5</span><span>C6</span></div>
+          <div class="voice-list" id="voice-list"></div>
+        </section>
+
+        <section class="block">
+          <h2>How you fit together</h2>
+          <div class="fit-list" id="fit-list"></div>
+        </section>
+
+        <section class="block" id="duets-block">
+          <div class="section-head">
+            <h2>Duets for the two of you</h2>
+          </div>
+          <p class="sub">Tap the artwork for the karaoke version. Each row says who takes which part.</p>
+          <div class="chart" id="duets"></div>
+        </section>
+
+        <section class="block">
+          <div class="section-head">
+            <h2 id="group-heading">Sing-alongs for everyone</h2>
+          </div>
+          <p class="sub">Songs whose melody sits comfortably in all your voices — everyone sings in their own octave.</p>
+          <div class="chart" id="group-songs"></div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+  <script src="data.js"></script>
+  <script src="engine.js"></script>
+  <script src="friends.js"></script>
+</body>
+</html>

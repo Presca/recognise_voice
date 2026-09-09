@@ -10,6 +10,7 @@ Recognise Voice listens to a short sung phrase, analyses it in the browser, and 
 - **Songs to try** — a numbered chart with one-tap links to open on **Spotify**, watch on **YouTube**, or sing along to a **karaoke** version on YouTube. Unmatch any song (✕) and a better suggestion moves up; unmatched songs are remembered between visits.
 - **A karaoke to start with** — the top pick is featured so you can get singing straight away.
 - **Replay** — listen back to the exact take that was analysed (kept in memory only, never uploaded).
+- **Sing with friends** (`friends.html`) — record one singer after another, then get a plain description of each voice, how they fit together (spacing, shared notes, tone blend), duets with who-sings-which-part, and sing-alongs everyone can manage in their own octave.
 
 The UI is modelled on Shazam's one-big-button flow, in electric violet.
 
@@ -34,6 +35,7 @@ Chrome or Edge is recommended. Nothing is uploaded — all audio analysis runs i
 | `data.js` | Curated dataset of 60+ singers, classic and current (voice type, comfortable range, perceptual ratings, technique/delivery tags, genres, five songs each) and link builders for Spotify / YouTube / karaoke |
 | `engine.js` | Web Audio + MediaRecorder capture, frame measurements, segmentation, vocal fingerprint, four-dimension singer matching, genre and song ranking |
 | `app.js` | UI flow, rendering, unmatch/refresh logic |
+| `friends.html` / `friends.js` | Sing-with-friends page: multi-singer roster, group fit description, duet and sing-along ranking (`DUETS`, `GROUP_SONGS` in `data.js`) |
 
 ### Analysis
 
