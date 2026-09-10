@@ -4,6 +4,7 @@ Sing one line and find out what your singing voice can do.
 
 ReVoice listens to a short sung phrase, analyses it in the browser, and tells you:
 
+- **A consistent voice type** — after your line, an optional 10-second range check (an “ahh” slide from your lowest to your highest comfortable note) widens the range; the type is classified from your lowest and highest notes, remembered across takes, so it no longer flips between Alto and Soprano depending on the key you happened to sing in. With thin evidence it says “likely”.
 - **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
 - **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
 - **Genres best suited to your voice.**
@@ -45,16 +46,17 @@ The engine follows a measure-first, describe-second pipeline:
 1. **Frame measurements** every 25 ms: fundamental frequency by autocorrelation (with a periodicity
    score used as a harmonic-to-noise proxy), RMS level, spectral centroid, roll-off, band energy
    shares, spectral tilt and H1–H2.
-2. **Segmentation** into phrases (silences ≥ 250 ms) and notes (pitch steps ≥ 0.7 semitone that
+2. **Voice type from extremes** — the line's 5th–95th percentile pitch, widened by the range-check slide (3rd–97th) and by remembered earlier takes, is scored against conventional range templates (Bass E2–E4 … Soprano C4–C6) by overlap and centre distance; the tessitura still comes from the line itself.
+3. **Segmentation** into phrases (silences ≥ 250 ms) and notes (pitch steps ≥ 0.7 semitone that
    persist for two frames).
-3. **Distributions**, not just averages: median, percentiles and spread for pitch, level and spectrum.
+4. **Distributions**, not just averages: median, percentiles and spread for pitch, level and spectrum.
    Range is reported three ways — demonstrated (min–max), typical usable (5th–95th percentile) and
    comfortable tessitura (25th–75th).
-4. **Derived scores (0–100)** for brightness, warmth, vocal weight, breathiness, roughness, plus
+5. **Derived scores (0–100)** for brightness, warmth, vocal weight, breathiness, roughness, plus
    vibrato rate / extent / regularity, attack and release, scoops, slides, runs, phrasing and dynamics.
    Every value carries a confidence (0–1) driven by recording quality (SNR, clipping, seconds of
    usable singing) and the reliability of the feature itself.
-5. **Four separate dimensions** — *Voice* (what it physically sounds like), *Technique* (how you use
+6. **Four separate dimensions** — *Voice* (what it physically sounds like), *Technique* (how you use
    it), *Delivery* (how the performance feels) and *Style* (where it sits musically) — shown as a
    one-line descriptor such as `dark/breathy/light · soft onset, straight tone · behind-beat, understated · alt-pop`.
 

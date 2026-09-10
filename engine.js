@@ -453,6 +453,45 @@ function classifyVoice(medianMidi) {
   return VOICE_TYPES.find((v) => medianMidi <= v.max);
 }
 
+// Voice type from range extremes rather than from where one line happened to
+// sit. Templates are conventional comfortable ranges; a take is scored on how
+// well its span fits inside a template and how close their centres are.
+const VOICE_TEMPLATES = [
+  { type: "Bass",          low: 40, high: 64 }, // E2–E4
+  { type: "Bass-baritone", low: 43, high: 67 }, // G2–G4
+  { type: "Baritone",      low: 45, high: 69 }, // A2–A4
+  { type: "Tenor",         low: 48, high: 72 }, // C3–C5
+  { type: "Alto",          low: 53, high: 77 }, // F3–F5
+  { type: "Mezzo-soprano", low: 57, high: 81 }, // A3–A5
+  { type: "Soprano",       low: 60, high: 84 }, // C4–C6
+];
+
+function classifyVoiceRange(low, high) {
+  const centre = (low + high) / 2;
+  const span = Math.max(1, high - low);
+  let best = null;
+  VOICE_TEMPLATES.forEach((t) => {
+    const overlap = Math.max(0, Math.min(high, t.high) - Math.max(low, t.low));
+    const coverage = overlap / span;
+    const centreFit = 1 - Math.min(1, Math.abs(centre - (t.low + t.high) / 2) / 12);
+    const belowPenalty = low < t.low - 2 ? (t.low - 2 - low) / 12 : 0;
+    const abovePenalty = high > t.high + 2 ? (high - t.high - 2) / 12 : 0;
+    const score = 0.5 * centreFit + 0.5 * coverage - belowPenalty - abovePenalty;
+    if (!best || score > best.score) best = { type: t.type, score };
+  });
+  return { type: best.type, desc: VOICE_TYPES.find((v) => v.type === best.type).desc };
+}
+
+// Lowest / highest reliably sung notes in a take (3rd–97th percentile).
+function takeExtremes(samples) {
+  const midis = samples
+    .filter((s) => s.freq >= 60 && s.freq <= 1400 && s.rms > 0.015 && s.clarity >= 0.6)
+    .map((s) => freqToMidi(s.freq))
+    .sort((a, b) => a - b);
+  if (midis.length < 12) return null;
+  return { low: percentile(midis, 0.03), high: percentile(midis, 0.97) };
+}
+
 /* ---------- Main analysis ---------- */
 
 const BRIGHTNESS_LABELS = ["very dark", "dark", "neutral", "bright", "very bright"];
@@ -461,7 +500,9 @@ const WARMTH_LABELS = ["cold", "cool", "neutral", "warm", "very warm"];
 const BREATHINESS_LABELS = ["clear", "slightly breathy", "moderately breathy", "breathy", "very breathy"];
 const ROUGHNESS_LABELS = ["smooth", "mostly smooth", "slightly rough", "raspy", "very raspy"];
 
-function analyseSamples(samples) {
+// options.rangeSamples: frames from a low-to-high "ahh" slide (range check)
+// options.history:      { low, high } extremes remembered from earlier takes
+function analyseSamples(samples, options = {}) {
   if (samples.length < 4) return null;
   const dts = [];
   for (let i = 1; i < samples.length; i++) dts.push(samples[i].t - samples[i - 1].t);
@@ -716,19 +757,33 @@ function analyseSamples(samples) {
   const weight3 = weight <= 40 ? "light" : weight > 60 ? "heavy" : "medium";
   const texture = breathiness >= 55 ? "breathy" : roughness !== null && roughness >= 55 ? "raspy" : warmth >= 55 ? "warm" : warmth <= 40 ? "clear" : "smooth";
 
-  const voice = classifyVoice(median);
+  // Range for the voice type: this line, widened by the range check and by
+  // earlier takes. The line alone shows the key you picked, not your voice.
+  const glide = options.rangeSamples ? takeExtremes(options.rangeSamples) : null;
+  const takeLow = Math.min(low5, glide ? glide.low : low5);
+  const takeHigh = Math.max(high95, glide ? glide.high : high95);
+  const hist = options.history && Number.isFinite(options.history.low) ? options.history : null;
+  const rangeLow = Math.min(takeLow, hist ? hist.low : takeLow);
+  const rangeHigh = Math.max(takeHigh, hist ? hist.high : takeHigh);
+  const rangeSources = [];
+  if (glide) rangeSources.push("range check");
+  if (hist && hist.takes) rangeSources.push(`${hist.takes} earlier take${hist.takes === 1 ? "" : "s"}`);
+  const voice = classifyVoiceRange(rangeLow, rangeHigh);
+  const voiceConfident = rangeHigh - rangeLow >= 14;
   const specConf = base * 0.7;
 
   /* --- 9. Machine-readable fingerprint --- */
   const fingerprint = {
-    singer: { name: "You", sex_or_voice_category: voice.type + " (estimated)", age_at_recording: null, analysis_period: new Date().toISOString().slice(0, 10), sample_count: 1 },
+    singer: { name: "You", sex_or_voice_category: voice.type + (voiceConfident ? " (from range extremes)" : " (provisional — narrow evidence)"), age_at_recording: null, analysis_period: new Date().toISOString().slice(0, 10), sample_count: 1 + (hist && hist.takes ? hist.takes : 0) },
     acoustic_profile: {
       f0: measured({ hz: distribution(voiced.map((s) => s.freq), 1), midi: distribution(midis, 2), frames: voiced.length, frame_ms: round(dt * 1000, 1) }, base, "autocorrelation pitch tracking on 43 ms windows"),
       range: measured({
         demonstrated: { low: midiToNote(minMidi), high: midiToNote(maxMidi), semitones: round(maxMidi - minMidi, 1) },
         typical_usable_p5_p95: { low: midiToNote(low5), high: midiToNote(high95), semitones: round(high95 - low5, 1) },
         comfortable_tessitura_p25_p75: { low: midiToNote(q1), high: midiToNote(q3), semitones: round(q3 - q1, 1) },
-      }, base * 0.9, "percentiles of voiced-frame pitch", { note: "one sung line is not a range test; extremes reflect this phrase only" }),
+        range_check: glide ? { low: midiToNote(glide.low), high: midiToNote(glide.high), semitones: round(glide.high - glide.low, 1) } : null,
+        combined_for_voice_type: { low: midiToNote(rangeLow), high: midiToNote(rangeHigh), semitones: round(rangeHigh - rangeLow, 1), sources: ["this line", ...rangeSources], confident: voiceConfident },
+      }, base * 0.9, "percentiles of voiced-frame pitch", { note: "voice type is classified from the combined extremes, not from where this line sat" }),
       tessitura: measured({
         median_note: midiToNote(median), median_midi: round(median, 2), lower_midi: round(q1, 2), upper_midi: round(q3, 2), width_semitones: round(q3 - q1, 1),
         share_of_own_range: { lower_third: round(thirds.lower / midis.length * 100, 0), middle_third: round(thirds.middle / midis.length * 100, 0), upper_third: round(thirds.upper / midis.length * 100, 0) },
@@ -818,16 +873,18 @@ function analyseSamples(samples) {
 
   return {
     // fields used by the UI
-    lowMidi: low5, highMidi: high95, medianMidi: median,
-    lowNote: midiToNote(low5), highNote: midiToNote(high95), medianNote: midiToNote(median),
-    spanSemitones: Math.round(high95 - low5),
-    voiceType: voice.type, voiceDesc: voice.desc,
+    lowMidi: rangeLow, highMidi: rangeHigh, medianMidi: median,
+    lowNote: midiToNote(rangeLow), highNote: midiToNote(rangeHigh), medianNote: midiToNote(median),
+    lineLowNote: midiToNote(low5), lineHighNote: midiToNote(high95),
+    takeLow, takeHigh, rangeSources,
+    spanSemitones: Math.round(rangeHigh - rangeLow),
+    voiceType: voice.type, voiceDesc: voice.desc, voiceConfident,
     tone: bright3, steadiness,
     dynamics: expressiveness >= 55 ? "dynamic" : expressiveness < 30 ? "understated" : "controlled",
     framesUsed: voiced.length,
     // structured results
     fingerprint, descriptor, scores, techniqueTags, deliveryTags: delivery, base,
-    summary: summariseFingerprint(fingerprint, { descriptor, scores, voiceType: voice.type, stabilityCents, steadiness, sungSeconds }),
+    summary: summariseFingerprint(fingerprint, { descriptor, scores, voiceType: voice.type, voiceConfident, rangeLow, rangeHigh, rangeSources, stabilityCents, steadiness, sungSeconds }),
   };
 }
 
@@ -852,7 +909,7 @@ function summariseFingerprint(fp, ctx) {
 
   const r = ap.range.value;
   rows.push(row("pitch", "Pitch / range",
-    `Sang ${r.typical_usable_p5_p95.low}–${r.typical_usable_p5_p95.high} (${Math.round(r.typical_usable_p5_p95.semitones)} semitones), comfortable around ${ap.tessitura.value.median_note} — ${ctx.voiceType} territory. Pitch held within ±${Math.round(ctx.stabilityCents ?? 0)} cents inside notes (${ctx.steadiness}).`,
+    `This line: ${r.typical_usable_p5_p95.low}–${r.typical_usable_p5_p95.high}, comfortable around ${ap.tessitura.value.median_note}. Range so far ${midiToNote(ctx.rangeLow)}–${midiToNote(ctx.rangeHigh)} (${Math.round(ctx.rangeHigh - ctx.rangeLow)} semitones${ctx.rangeSources.length ? ", incl. " + ctx.rangeSources.join(" and ") : ""}) → ${ctx.voiceConfident ? ctx.voiceType : "likely " + ctx.voiceType}${ctx.voiceConfident ? "" : " — run the range check to confirm"}. Pitch held within ±${Math.round(ctx.stabilityCents ?? 0)} cents inside notes (${ctx.steadiness}).`,
     ap.range.confidence));
 
   rows.push(row("weight", "Weight",

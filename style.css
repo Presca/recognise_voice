@@ -1295,3 +1295,10 @@ details.raw .pill-btn { margin-top: 0.75rem; }
   font: inherit;
   font-size: 0.8rem;
 }
+
+/* range consistency */
+
+.range-note { margin: 0.75rem auto 0; max-width: 46ch; color: var(--on-brand-muted); font-size: 0.88rem; line-height: 1.45; }
+.range-note button { background: none; border: none; color: var(--on-brand); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; padding: 0; }
+.hero-actions { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+.hero-actions .replay-btn { margin-top: 0.9rem; }

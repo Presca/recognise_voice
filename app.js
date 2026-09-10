@@ -15,6 +15,8 @@ const RANGE_BAR_HIGH = noteToMidi("C6");
 const SONGS_PER_PAGE = 6;
 const DISMISSED_KEY = "recognise-voice:unmatched";
 const LANG_KEY = "revoice:lang";
+const HISTORY_KEY = "revoice:range-history";
+const RANGE_RECORD_MS = 12000;
 
 const recorder = new VoiceRecorder();
 let uiTimer = null;
@@ -116,21 +118,60 @@ $("prompt-chips").addEventListener("click", (e) => {
   document.querySelectorAll("#prompt-chips .chip").forEach((c) => c.classList.remove("selected"));
   chip.classList.add("selected");
   selectedLine = chip.dataset.line;
+  selectedIsGlide = chip.dataset.mode === "glide";
 });
 selectedLine = document.querySelector("#prompt-chips .chip.selected").dataset.line;
+let selectedIsGlide = false;
+
+/* ---------- Range history (so the voice type settles over time) ---------- */
+
+function loadHistory() {
+  try {
+    const takes = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]").filter((t) => Number.isFinite(t.low) && Number.isFinite(t.high));
+    if (!takes.length) return null;
+    return { low: Math.min(...takes.map((t) => t.low)), high: Math.max(...takes.map((t) => t.high)), takes: takes.length };
+  } catch {
+    return null;
+  }
+}
+
+function saveTake(low, high) {
+  try {
+    const takes = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    takes.push({ low: +low.toFixed(2), high: +high.toFixed(2), t: Date.now() });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(takes.slice(-20)));
+  } catch {
+    /* storage unavailable — the range just won't accumulate */
+  }
+}
+
+function clearHistory() {
+  try { localStorage.removeItem(HISTORY_KEY); } catch { /* fine */ }
+}
 
 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !(window.AudioContext || window.webkitAudioContext)) {
   $("unsupported").hidden = false;
   $("start-btn").disabled = true;
 }
 
-$("start-btn").addEventListener("click", startRecording);
+$("start-btn").addEventListener("click", () => startRecording("line"));
 
 /* ---------- Recording ---------- */
 
-async function startRecording() {
+const take = { phase: "line", lineSamples: null, lineBlob: null };
+
+// phase "line": the chosen line (style, tone, tessitura).
+// phase "range": an "ahh" slide from lowest to highest comfortable note, used
+// only to widen the range the voice type is classified from.
+async function startRecording(phase = "line") {
+  take.phase = phase;
   $("error").hidden = true;
-  $("lyric").textContent = selectedLine;
+  $("lyric").textContent = phase === "line"
+    ? selectedLine
+    : "Sing “ahh” — start on your lowest comfortable note, slide up to your highest comfortable note, then back down.";
+  $("record-title").textContent = phase === "line" ? "Listening… tap to finish" : "Range check — tap when done";
+  $("skip-btn").hidden = phase !== "range";
+  $("max-secs").textContent = phase === "line" ? MAX_RECORD_MS / 1000 : RANGE_RECORD_MS / 1000;
   $("live-note").textContent = "—";
   $("stop-btn").style.setProperty("--pulse", 1);
   $("elapsed").textContent = "0.0";
@@ -143,14 +184,16 @@ async function startRecording() {
       : "Couldn't start the microphone: " + (err && err.message ? err.message : err);
     $("error").textContent = msg;
     $("error").hidden = false;
+    showScreen("intro");
     return;
   }
 
   showScreen("record");
+  const limit = phase === "line" ? MAX_RECORD_MS : RANGE_RECORD_MS;
   uiTimer = setInterval(() => {
     const ms = recorder.elapsed();
     $("elapsed").textContent = (ms / 1000).toFixed(1);
-    if (ms >= MAX_RECORD_MS) finishRecording();
+    if (ms >= limit) finishRecording();
   }, 100);
 }
 
@@ -172,12 +215,18 @@ function cancelRecording() {
 function finishRecording() {
   clearInterval(uiTimer);
   uiTimer = null;
-  const tooShort = recorder.elapsed() < MIN_RECORD_MS;
+  const elapsed = recorder.elapsed();
   const samples = recorder.stop();
   const blobPromise = recorder.blobPromise;
-  const profile = tooShort ? null : analyseSamples(samples);
 
-  if (!profile) {
+  if (take.phase === "range") {
+    completeAnalysis(elapsed >= 1500 ? samples : null);
+    return;
+  }
+
+  const tooShort = elapsed < MIN_RECORD_MS;
+  const quick = tooShort ? null : analyseSamples(samples);
+  if (!quick) {
     $("error").textContent = tooShort
       ? "That was a bit short — sing for at least a few seconds so we can hear your range."
       : "We couldn't pick up a clear singing voice. Move closer to the mic, sing a little louder, and try again.";
@@ -186,9 +235,41 @@ function finishRecording() {
     return;
   }
 
-  setupReplay(blobPromise);
+  take.lineSamples = samples;
+  take.lineBlob = blobPromise;
+  if (selectedIsGlide) {
+    // The line itself was a slide — it doubles as the range check.
+    completeAnalysis(samples);
+  } else {
+    startRecording("range");
+  }
+}
+
+function skipRangeCheck() {
+  clearInterval(uiTimer);
+  uiTimer = null;
+  if (recorder.timer) recorder.stop();
+  completeAnalysis(null);
+}
+
+function completeAnalysis(rangeSamples) {
+  const profile = analyseSamples(take.lineSamples, { rangeSamples, history: loadHistory() });
+  if (!profile) {
+    $("error").textContent = "We couldn't pick up a clear singing voice. Move closer to the mic, sing a little louder, and try again.";
+    $("error").hidden = false;
+    showScreen("intro");
+    return;
+  }
+  saveTake(profile.takeLow, profile.takeHigh);
+  setupReplay(take.lineBlob);
   runAnalysis(profile);
 }
+
+$("skip-btn").addEventListener("click", skipRangeCheck);
+$("refine-btn").addEventListener("click", () => {
+  if (!take.lineSamples) { showScreen("intro"); return; }
+  startRecording("range");
+});
 
 /* ---------- Replay ---------- */
 
@@ -264,8 +345,21 @@ function runAnalysis(profile) {
 }
 
 function renderVoice(p) {
+  $("voice-eyebrow").textContent = p.voiceConfident ? "Your voice type" : "Your likely voice type";
   $("voice-type").textContent = p.voiceType;
-  $("voice-desc").textContent = `Estimated from what you sang — ${p.voiceDesc}. In short: ${p.descriptor.voice}.`;
+  $("voice-desc").textContent = `${p.voiceDesc.charAt(0).toUpperCase() + p.voiceDesc.slice(1)}. In short: ${p.descriptor.voice}.`;
+
+  const note = $("range-note");
+  note.replaceChildren();
+  const sources = p.rangeSources.length ? ` (this line, ${p.rangeSources.join(" and ")})` : " (this line only)";
+  note.append(document.createTextNode(`Range so far ${p.lowNote}–${p.highNote}, ${p.spanSemitones} semitones${sources}. `));
+  note.append(document.createTextNode(p.voiceConfident
+    ? "The type is classified from your lowest and highest notes, so it stays the same whichever key you sing in. "
+    : "One line shows the key you picked more than your voice — do the range check to settle it. "));
+  const reset = el("button", null, "Forget my earlier takes");
+  reset.type = "button";
+  reset.addEventListener("click", () => { clearHistory(); note.textContent = "Earlier takes forgotten — your next take starts fresh."; });
+  note.append(reset);
 
   const fill = $("user-range-fill");
   fill.style.left = pct(p.lowMidi) + "%";
@@ -273,8 +367,8 @@ function renderVoice(p) {
   $("user-range-median").style.left = pct(p.medianMidi) + "%";
 
   const stats = [
-    ["Range sung", `${p.lowNote} – ${p.highNote}`],
-    ["Span", `${p.spanSemitones} semitones`],
+    ["This line", `${p.lineLowNote} – ${p.lineHighNote}`],
+    ["Range so far", `${p.lowNote} – ${p.highNote} · ${p.spanSemitones} st`],
     ["Comfort zone", p.medianNote],
     ["Tone", p.tone],
     ["Pitch", p.steadiness],

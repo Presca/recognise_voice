@@ -46,7 +46,7 @@
       <div class="chips" id="prompt-chips">
         <button class="chip selected" data-line="Happy birthday to you, happy birthday to you…">🎂 Happy Birthday</button>
         <button class="chip" data-line="Twinkle, twinkle, little star, how I wonder what you are…">⭐ Twinkle Twinkle</button>
-        <button class="chip" data-line="Sing “ahh” — start comfortable, slide up as high as feels easy, then down as low as you can.">🎵 Slide on “ahh”</button>
+        <button class="chip" data-mode="glide" data-line="Sing “ahh” — start on your lowest comfortable note, slide up to your highest comfortable note, then back down.">🎵 Slide on “ahh”</button>
         <button class="chip" data-line="Sing a line from any song you love.">🎶 My own song</button>
       </div>
       <p class="hint">Chrome or Edge works best. Nothing is uploaded — analysis runs in your browser.</p>
@@ -66,7 +66,7 @@
     </header>
 
     <div class="stage-center">
-      <p class="tap-label">Listening… tap to finish</p>
+      <p class="tap-label" id="record-title">Listening… tap to finish</p>
 
       <button id="stop-btn" class="big-btn listening" type="button" aria-label="Stop and analyse">
         <span class="ring ring-1"></span>
@@ -78,7 +78,8 @@
       </button>
 
       <p class="lyric" id="lyric"></p>
-      <p class="timer"><span id="elapsed">0.0</span>s · stops at 15s</p>
+      <p class="timer"><span id="elapsed">0.0</span>s · stops at <span id="max-secs">15</span>s</p>
+      <button id="skip-btn" class="ghost-btn" type="button" hidden>Skip the range check</button>
     </div>
   </section>
 
@@ -96,10 +97,14 @@
         </span>
       </header>
       <div class="result-hero">
-        <p class="eyebrow">Your voice type</p>
+        <p class="eyebrow" id="voice-eyebrow">Your voice type</p>
         <h1 id="voice-type">—</h1>
         <p id="voice-desc" class="lead"></p>
-        <button id="replay-btn" class="replay-btn" type="button" hidden></button>
+        <p id="range-note" class="range-note"></p>
+        <div class="hero-actions">
+          <button id="replay-btn" class="replay-btn" type="button" hidden></button>
+          <button id="refine-btn" class="replay-btn" type="button">🎯 Range check</button>
+        </div>
         <audio id="replay-audio" preload="auto"></audio>
       </div>
     </div>
