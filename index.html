@@ -124,8 +124,15 @@
           <h2>Your vocal fingerprint</h2>
           <p class="sub">Measured first, described second. Dots show confidence; grey rows are things one sung line can't tell us.</p>
           <div class="dim-grid" id="dim-grid"></div>
-          <dl class="fp-list" id="fp-list"></dl>
-          <div class="distinguish" id="distinguish"></div>
+          <div class="fp-collapse collapsed" id="fp-collapse">
+            <div class="fp-collapse-body">
+              <dl class="fp-list" id="fp-list"></dl>
+              <div class="distinguish" id="distinguish"></div>
+            </div>
+            <div class="fp-fade">
+              <button id="fp-toggle" class="pill-btn" type="button" aria-expanded="false" aria-controls="fp-collapse">Show more</button>
+            </div>
+          </div>
         </section>
 
         <section class="block">

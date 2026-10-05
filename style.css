@@ -1312,3 +1312,31 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 .kb-wrap { margin: 0.25rem 0 1rem; }
 .kb { width: 100%; height: auto; display: block; }
 .kb-caption { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+
+/* collapsible fingerprint */
+
+.fp-collapse { position: relative; }
+
+.fp-collapse.collapsed .fp-collapse-body {
+  max-height: 190px;
+  overflow: hidden;
+}
+
+.fp-fade {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.fp-collapse.collapsed .fp-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 130px;
+  align-items: flex-end;
+  padding-bottom: 0.25rem;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--sheet) 70%);
+}
+
+.fp-fade .pill-btn { box-shadow: 0 10px 25px -12px rgba(0, 0, 0, 0.35); }

@@ -336,6 +336,9 @@ function runAnalysis(profile) {
 
   renderVoice(profile);
   renderFingerprint(profile, state.matches);
+  $("fp-collapse").classList.add("collapsed");
+  $("fp-toggle").textContent = "Show more";
+  $("fp-toggle").setAttribute("aria-expanded", "false");
   renderSingers(state.matches.slice(0, 7), profile);
   renderGenres(genres);
   renderSongs();
@@ -441,6 +444,14 @@ function renderFingerprint(p, matches) {
   });
 
 }
+
+$("fp-toggle").addEventListener("click", () => {
+  const wrap = $("fp-collapse");
+  const open = wrap.classList.toggle("collapsed") === false;
+  $("fp-toggle").textContent = open ? "Show less" : "Show more";
+  $("fp-toggle").setAttribute("aria-expanded", String(open));
+  if (!open) wrap.scrollIntoView({ block: "start", behavior: "smooth" });
+});
 
 /* ---------- Singer carousel ---------- */
 
