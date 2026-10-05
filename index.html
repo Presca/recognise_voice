@@ -115,11 +115,8 @@
       <div class="sheet-inner">
 
         <section class="block">
-          <div class="range-bar" id="user-range-bar">
-            <div class="range-fill" id="user-range-fill"></div>
-            <div class="range-marker" id="user-range-median"></div>
-          </div>
-          <div class="range-labels"><span>C2</span><span>C3</span><span>C4</span><span>C5</span><span>C6</span></div>
+          <h2>Your range on the keyboard</h2>
+          <div class="kb-wrap" id="user-keyboard"></div>
           <dl class="stats" id="stats"></dl>
         </section>
 
@@ -129,11 +126,6 @@
           <div class="dim-grid" id="dim-grid"></div>
           <dl class="fp-list" id="fp-list"></dl>
           <div class="distinguish" id="distinguish"></div>
-          <details class="raw">
-            <summary>All measurements (JSON)</summary>
-            <button id="copy-json" class="pill-btn subtle" type="button">Copy JSON</button>
-            <pre id="fp-json"></pre>
-          </details>
         </section>
 
         <section class="block">
@@ -184,6 +176,7 @@
 
   <script src="data.js"></script>
   <script src="engine.js"></script>
+  <script src="keyboard.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

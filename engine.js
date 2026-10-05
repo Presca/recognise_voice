@@ -168,7 +168,7 @@ function spectralFeatures(db, binHz, f0) {
   for (let i = 1; i < nBins; i++) {
     const f = i * binHz;
     if (f < 60 || f > 10000) continue;
-    const p = 10 ** (db[i] / 10);
+    const p = 10 ** (db[i] / 20); // magnitude weighting
     if (!Number.isFinite(p)) continue;
     power[i] = p;
     total += p;
@@ -694,15 +694,15 @@ function analyseSamples(samples, options = {}) {
 
   /* --- 7. Perceptual derivations (0–100) --- */
   const centroidRatio = centroidMed / midiToFreq(median); // centroid in multiples of the sung pitch
-  const brightness = Math.round(100 * (0.55 * scale(centroidRatio, 2.5, 9) + 0.45 * scale(hfMed, 0.03, 0.4)));
+  const brightness = Math.round(100 * (0.55 * scale(centroidRatio, 2, 7) + 0.45 * scale(hfMed, 0.12, 0.5)));
   const weight = Math.round(100 * (
-    0.45 * scale(lowMed, 0.15, 0.75) +
+    0.45 * scale(lowMed, 0.1, 0.5) +
     0.25 * (tiltMed === null ? 0.5 : scale(tiltMed, -5, 25)) +
     0.30 * (1 - scale(median, 45, 72))
   ));
   const breathInputs = [
     [0.5, 1 - scale(hnrMed, 4, 18)],
-    [0.2, scale(med(specs.map((s) => s.vhighShare)), 0.02, 0.3)],
+    [0.2, scale(med(specs.map((s) => s.vhighShare)), 0.05, 0.3)],
   ];
   if (h1h2Med !== null) breathInputs.push([0.3, scale(h1h2Med, 0, 12)]);
   const breathW = breathInputs.reduce((a, [w]) => a + w, 0);
@@ -713,7 +713,7 @@ function analyseSamples(samples, options = {}) {
     0.6 * scale(jitterMed, 0.003, 0.03) + 0.4 * (claritySdMed === null ? 0 : scale(claritySdMed, 0.02, 0.15))
   ));
   const warmth = Math.round(100 * (
-    0.45 * scale(lowMidMed, 0.15, 0.6) +
+    0.45 * scale(lowMidMed, 0.2, 0.55) +
     0.30 * (1 - Math.abs(brightness - 45) / 55) +
     0.25 * (1 - (roughness ?? 30) / 100)
   ));
@@ -902,7 +902,7 @@ function summariseFingerprint(fp, ctx) {
 
   const spec = ap.spectral.value;
   rows.push(row("timbre", "Timbre",
-    `${cap(pp.brightness.value.label)} timbre, ${pp.warmth.value.label} warmth — spectral centroid around ${spec.centroid_hz.median} Hz, ${Math.round(spec.high_share_above_2000hz.median * 100)}% of energy above 2 kHz.`,
+    `${cap(pp.brightness.value.label)} timbre, ${pp.warmth.value.label === "neutral" ? "neutral warmth" : pp.warmth.value.label} — spectral centroid around ${spec.centroid_hz.median} Hz, ${Math.round(spec.high_share_above_2000hz.median * 100)}% of energy above 2 kHz.`,
     pp.brightness.confidence));
 
   const r = ap.range.value;
@@ -911,12 +911,12 @@ function summariseFingerprint(fp, ctx) {
     ap.range.confidence));
 
   rows.push(row("weight", "Weight",
-    `${cap(pp.vocal_weight.value.label)} (${pp.vocal_weight.value.score}/100) — ${Math.round(spec.low_share_below_500hz.median * 100)}% of energy below 500 Hz${spec.spectral_tilt_db_100_1k_vs_1k_4k ? `, spectral tilt ${spec.spectral_tilt_db_100_1k_vs_1k_4k.median} dB` : ""}.`,
+    `${cap(pp.vocal_weight.value.label)} — ${Math.round(spec.low_share_below_500hz.median * 100)}% of energy below 500 Hz${spec.spectral_tilt_db_100_1k_vs_1k_4k ? `, spectral tilt ${spec.spectral_tilt_db_100_1k_vs_1k_4k.median} dB` : ""}.`,
     pp.vocal_weight.confidence));
 
-  const rough = pp.roughness.value ? `${pp.roughness.value.label} (${pp.roughness.value.score}/100)` : "roughness not measurable";
+  const rough = pp.roughness.value ? pp.roughness.value.label : "roughness not measurable";
   rows.push(row("texture", "Texture",
-    `${cap(pp.breathiness.value.label)} (${pp.breathiness.value.score}/100), ${rough}. Harmonic-to-noise estimate ${ap.harmonic.value.hnr_db_estimate.median} dB.`,
+    `${cap(pp.breathiness.value.label)}, ${rough}. Harmonic-to-noise estimate ${ap.harmonic.value.hnr_db_estimate.median} dB.`,
     Math.min(pp.breathiness.confidence, pp.roughness.confidence || pp.breathiness.confidence)));
 
   rows.push(row("resonance", "Resonance", pp.resonance.reason, 0));
@@ -1032,20 +1032,20 @@ function distinguishingTraits(profile) {
 
   const s = profile.scores;
   const axes = [
-    ["brightness", "Very dark timbre", "Very bright timbre", "brightness"],
-    ["warmth", "A cool, lean tone", "An unusually warm tone", "warmth"],
-    ["weight", "A very light voice", "A very heavy, full voice", "weight"],
-    ["breathiness", "A very clear, focused sound", "A very breathy, airy sound", "breathiness"],
-    ["roughness", "A very smooth, even texture", "A very raspy texture", "roughness"],
-    ["vibrato", "Almost no vibrato — straight-tone singing", "Strong, prominent vibrato", "vibrato"],
+    ["brightness", "A notably dark, mellow timbre", "A notably bright, ringing timbre"],
+    ["warmth", "A cool, lean tone", "An unusually warm tone"],
+    ["weight", "A very light voice", "A very heavy, full voice"],
+    ["breathiness", "A clear, focused sound with little breath in it", "A very breathy, airy sound"],
+    ["roughness", "A smooth, even texture", "A distinctly raspy texture"],
+    ["vibrato", "Straight-tone singing with almost no vibrato", "Strong, prominent vibrato"],
   ];
-  axes.forEach(([key, lowText, highText, label]) => {
+  axes.forEach(([key, lowText, highText]) => {
     const v = s[key];
     if (v === null || v === undefined) return;
-    if (v <= 20) traits.push({ strength: (20 - v) / 20, text: `${lowText} (${label} ${v}/100)` });
-    else if (v >= 80) traits.push({ strength: (v - 80) / 20, text: `${highText} (${label} ${v}/100)` });
+    if (v <= 12) traits.push({ strength: (12 - v) / 12, text: lowText });
+    else if (v >= 88) traits.push({ strength: (v - 88) / 12, text: highText });
   });
-  return traits.sort((a, b) => b.strength - a.strength).slice(0, 5);
+  return traits.sort((a, b) => b.strength - a.strength).slice(0, 4);
 }
 
 function suggestGenres(matches, profile, top = 5) {

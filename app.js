@@ -357,10 +357,7 @@ function renderVoice(p) {
     note.textContent = `This line covered ${p.lowNote}–${p.highNote} (${p.spanSemitones} semitones) — that mostly reflects the key you picked. Do the range check for a type that reflects your whole voice.`;
   }
 
-  const fill = $("user-range-fill");
-  fill.style.left = pct(p.lowMidi) + "%";
-  fill.style.width = Math.max(1.5, pct(p.highMidi) - pct(p.lowMidi)) + "%";
-  $("user-range-median").style.left = pct(p.medianMidi) + "%";
+  renderKeyboardRange($("user-keyboard"), [{ low: p.lowMidi, high: p.highMidi, median: p.medianMidi, colour: "#8800ff" }]);
 
   const stats = [
     ["This line", `${p.lineLowNote} – ${p.lineHighNote}`],
@@ -443,18 +440,7 @@ function renderFingerprint(p, matches) {
     dm.append(row);
   });
 
-  $("fp-json").textContent = JSON.stringify(p.fingerprint, null, 2);
 }
-
-$("copy-json").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText($("fp-json").textContent);
-    $("copy-json").textContent = "Copied";
-    setTimeout(() => { $("copy-json").textContent = "Copy JSON"; }, 1500);
-  } catch {
-    /* clipboard blocked — the JSON is still visible to select */
-  }
-});
 
 /* ---------- Singer carousel ---------- */
 

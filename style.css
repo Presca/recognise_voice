@@ -1306,3 +1306,9 @@ details.raw .pill-btn { margin-top: 0.75rem; }
 .range-live { margin: 0.5rem 0 0; font-weight: 800; font-size: 1.05rem; color: var(--on-brand); font-variant-numeric: tabular-nums; }
 .range-tips { margin: 0.9rem auto 0; max-width: 46ch; color: var(--on-brand-muted); font-size: 0.8rem; line-height: 1.45; }
 .range-note { font-size: 0.88rem; }
+
+/* keyboard range chart */
+
+.kb-wrap { margin: 0.25rem 0 1rem; }
+.kb { width: 100%; height: auto; display: block; }
+.kb-caption { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }

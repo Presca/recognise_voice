@@ -5,7 +5,7 @@ Sing one line and find out what your singing voice can do.
 ReVoice listens to a short sung phrase, analyses it in the browser, and tells you:
 
 - **A voice type that reflects your whole voice** — after your line, a guided 20-second range check (sing an easy “ahh”, slide down to your lowest clear note, slide up to your highest comfortable note) with a live lowest/highest readout. The type is classified from those extremes, not from where the line sat, so it doesn't change with the key you happened to sing in. Nothing is stored between sessions; if the check is skipped the type is labelled “likely”.
-- **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
+- **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style), and your range drawn on a piano keyboard with the keys you sang lit up.
 - **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
 - **Genres best suited to your voice.**
 - **Sing in your language** — pick English, Español, 한국어, 日本語, हिन्दी, Français, Português, 中文, Tagalog or العربية and the matched singers, songs, duets and sing-alongs come from that language (or choose any language).
@@ -36,6 +36,7 @@ Chrome or Edge is recommended. Nothing is uploaded — all audio analysis runs i
 | `style.css` | Shazam-style visual design |
 | `data.js` | Curated dataset of 110+ singers across ten languages, classic and current (voice type, comfortable range, perceptual ratings, technique/delivery tags, genres, five songs each) and link builders for Spotify / YouTube / karaoke |
 | `engine.js` | Web Audio + MediaRecorder capture, frame measurements, segmentation, vocal fingerprint, four-dimension singer matching, genre and song ranking |
+| `keyboard.js` | Piano-keyboard range chart shared by both pages |
 | `app.js` | UI flow, rendering, unmatch/refresh logic |
 | `friends.html` / `friends.js` | Sing-with-friends page: multi-singer roster, group fit description, duet and sing-along ranking (`DUETS`, `GROUP_SONGS` in `data.js`) |
 
@@ -62,8 +63,7 @@ The engine follows a measure-first, describe-second pipeline:
 
 Things a single a cappella line on a phone microphone cannot support — formants, perceived resonance
 placement, register use (chest / mix / head / falsetto), rhythmic placement, articulation and vocal
-power — are reported as `null` with a reason rather than guessed. The full machine-readable
-fingerprint (JSON) is available on the results page.
+power — are reported as `null` with a reason rather than guessed.
 
 ### Matching
 

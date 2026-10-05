@@ -576,20 +576,7 @@ function runGroupAnalysis() {
   $("group-desc").textContent = `${list.length} voices — ${listNames(list.map((s) => s.name))}. ${fitRows[0][1]}`;
 
   // combined range
-  const lanes = $("multi-range");
-  lanes.replaceChildren();
-  list.forEach((s) => {
-    const lane = el("div", "lane");
-    lane.style.setProperty("--singer-colour", s.colour);
-    const fill = el("div", "range-fill");
-    fill.style.left = pct(s.profile.lowMidi) + "%";
-    fill.style.width = Math.max(1.5, pct(s.profile.highMidi) - pct(s.profile.lowMidi)) + "%";
-    const marker = el("div", "range-marker");
-    marker.style.left = pct(s.profile.medianMidi) + "%";
-    lane.title = `${s.name}: ${s.profile.lowNote}–${s.profile.highNote}`;
-    lane.append(fill, marker);
-    lanes.append(lane);
-  });
+  renderKeyboardRange($("group-keyboard"), list.map((s) => ({ low: s.profile.lowMidi, high: s.profile.highMidi, median: s.profile.medianMidi, colour: s.colour, label: s.name })));
 
   const voices = $("voice-list");
   voices.replaceChildren();
