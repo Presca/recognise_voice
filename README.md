@@ -4,7 +4,7 @@ Sing one line and find out what your singing voice can do.
 
 ReVoice listens to a short sung phrase, analyses it in the browser, and tells you:
 
-- **A consistent voice type** — after your line, an optional 10-second range check (an “ahh” slide from your lowest to your highest comfortable note) widens the range; the type is classified from your lowest and highest notes, remembered across takes, so it no longer flips between Alto and Soprano depending on the key you happened to sing in. With thin evidence it says “likely”.
+- **A voice type that reflects your whole voice** — after your line, a guided 20-second range check (sing an easy “ahh”, slide down to your lowest clear note, slide up to your highest comfortable note) with a live lowest/highest readout. The type is classified from those extremes, not from where the line sat, so it doesn't change with the key you happened to sing in. Nothing is stored between sessions; if the check is skipped the type is labelled “likely”.
 - **Your vocal fingerprint** — range, tessitura and voice type; timbre, weight, texture, vibrato, phrasing, ornamentation and technique, each with a confidence score; a four-part descriptor (Voice · Technique · Delivery · Style) and the full measurements as JSON.
 - **Singers with a similar voice** — a Shazam-style carousel of matches with separate scores for acoustic voice, technique and delivery, plus the closest singer on each dimension.
 - **Genres best suited to your voice.**
@@ -46,7 +46,7 @@ The engine follows a measure-first, describe-second pipeline:
 1. **Frame measurements** every 25 ms: fundamental frequency by autocorrelation (with a periodicity
    score used as a harmonic-to-noise proxy), RMS level, spectral centroid, roll-off, band energy
    shares, spectral tilt and H1–H2.
-2. **Voice type from extremes** — the line's 5th–95th percentile pitch, widened by the range-check slide (3rd–97th) and by remembered earlier takes, is scored against conventional range templates (Bass E2–E4 … Soprano C4–C6) by overlap and centre distance; the tessitura still comes from the line itself.
+2. **Voice type from extremes** — the line's 5th–95th percentile pitch, widened by the range check (3rd–97th percentile of clear, pitched frames), is scored against conventional range templates (Bass E2–E4 … Soprano C4–C6) by overlap and centre distance; the tessitura still comes from the line itself.
 3. **Segmentation** into phrases (silences ≥ 250 ms) and notes (pitch steps ≥ 0.7 semitone that
    persist for two frames).
 4. **Distributions**, not just averages: median, percentiles and spread for pitch, level and spectrum.

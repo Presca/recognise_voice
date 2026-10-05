@@ -500,8 +500,8 @@ const WARMTH_LABELS = ["cold", "cool", "neutral", "warm", "very warm"];
 const BREATHINESS_LABELS = ["clear", "slightly breathy", "moderately breathy", "breathy", "very breathy"];
 const ROUGHNESS_LABELS = ["smooth", "mostly smooth", "slightly rough", "raspy", "very raspy"];
 
-// options.rangeSamples: frames from a low-to-high "ahh" slide (range check)
-// options.history:      { low, high } extremes remembered from earlier takes
+// options.rangeSamples: frames from the guided range check (comfortable note,
+// slide down to the lowest clear note, slide up to the highest comfortable note)
 function analyseSamples(samples, options = {}) {
   if (samples.length < 4) return null;
   const dts = [];
@@ -757,24 +757,22 @@ function analyseSamples(samples, options = {}) {
   const weight3 = weight <= 40 ? "light" : weight > 60 ? "heavy" : "medium";
   const texture = breathiness >= 55 ? "breathy" : roughness !== null && roughness >= 55 ? "raspy" : warmth >= 55 ? "warm" : warmth <= 40 ? "clear" : "smooth";
 
-  // Range for the voice type: this line, widened by the range check and by
-  // earlier takes. The line alone shows the key you picked, not your voice.
+  // Range for the voice type: this line widened by the range check. The line
+  // alone shows the key you picked, not your voice, so nothing is remembered
+  // between sessions — each test stands on its own evidence.
   const glide = options.rangeSamples ? takeExtremes(options.rangeSamples) : null;
   const takeLow = Math.min(low5, glide ? glide.low : low5);
   const takeHigh = Math.max(high95, glide ? glide.high : high95);
-  const hist = options.history && Number.isFinite(options.history.low) ? options.history : null;
-  const rangeLow = Math.min(takeLow, hist ? hist.low : takeLow);
-  const rangeHigh = Math.max(takeHigh, hist ? hist.high : takeHigh);
-  const rangeSources = [];
-  if (glide) rangeSources.push("range check");
-  if (hist && hist.takes) rangeSources.push(`${hist.takes} earlier take${hist.takes === 1 ? "" : "s"}`);
+  const rangeLow = takeLow;
+  const rangeHigh = takeHigh;
+  const rangeSources = glide ? ["range check"] : [];
   const voice = classifyVoiceRange(rangeLow, rangeHigh);
   const voiceConfident = rangeHigh - rangeLow >= 14;
   const specConf = base * 0.7;
 
   /* --- 9. Machine-readable fingerprint --- */
   const fingerprint = {
-    singer: { name: "You", sex_or_voice_category: voice.type + (voiceConfident ? " (from range extremes)" : " (provisional — narrow evidence)"), age_at_recording: null, analysis_period: new Date().toISOString().slice(0, 10), sample_count: 1 + (hist && hist.takes ? hist.takes : 0) },
+    singer: { name: "You", sex_or_voice_category: voice.type + (voiceConfident ? " (from range extremes)" : " (provisional — narrow evidence)"), age_at_recording: null, analysis_period: new Date().toISOString().slice(0, 10), sample_count: 1 },
     acoustic_profile: {
       f0: measured({ hz: distribution(voiced.map((s) => s.freq), 1), midi: distribution(midis, 2), frames: voiced.length, frame_ms: round(dt * 1000, 1) }, base, "autocorrelation pitch tracking on 43 ms windows"),
       range: measured({
@@ -909,7 +907,7 @@ function summariseFingerprint(fp, ctx) {
 
   const r = ap.range.value;
   rows.push(row("pitch", "Pitch / range",
-    `This line: ${r.typical_usable_p5_p95.low}–${r.typical_usable_p5_p95.high}, comfortable around ${ap.tessitura.value.median_note}. Range so far ${midiToNote(ctx.rangeLow)}–${midiToNote(ctx.rangeHigh)} (${Math.round(ctx.rangeHigh - ctx.rangeLow)} semitones${ctx.rangeSources.length ? ", incl. " + ctx.rangeSources.join(" and ") : ""}) → ${ctx.voiceConfident ? ctx.voiceType : "likely " + ctx.voiceType}${ctx.voiceConfident ? "" : " — run the range check to confirm"}. Pitch held within ±${Math.round(ctx.stabilityCents ?? 0)} cents inside notes (${ctx.steadiness}).`,
+    `This line: ${r.typical_usable_p5_p95.low}–${r.typical_usable_p5_p95.high}, comfortable around ${ap.tessitura.value.median_note}. Range ${midiToNote(ctx.rangeLow)}–${midiToNote(ctx.rangeHigh)} (${Math.round(ctx.rangeHigh - ctx.rangeLow)} semitones${ctx.rangeSources.length ? ", incl. " + ctx.rangeSources.join(" and ") : ", line only"}) → ${ctx.voiceConfident ? ctx.voiceType : "likely " + ctx.voiceType}${ctx.voiceConfident ? "" : " — run the range check to confirm"}. Pitch held within ±${Math.round(ctx.stabilityCents ?? 0)} cents inside notes (${ctx.steadiness}).`,
     ap.range.confidence));
 
   rows.push(row("weight", "Weight",
